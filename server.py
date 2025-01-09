@@ -7,7 +7,6 @@ import os
 import commands as cmd
 import time
 
-
 HOST = '127.0.0.1'
 PORT = 10_000
 
@@ -29,12 +28,12 @@ def handle_player(conn, addr):
     ### functions
     def handle_request():
         _, target_name, ip, port = data.split()
-        print('-----DATA:', data)
+        # print('-----DATA:', data)
         
         # find target player
         with lock:
             target_player = next((p for p in players if p[0] == target_name), None)
-            print('--------FOUND')
+            # print('--------FOUND')
 
         if target_player:
             # conn.sendall(f"REQUEST_SENT {target_name}".encode())
@@ -53,33 +52,36 @@ def handle_player(conn, addr):
             else:
                 conn.sendall(f"{cmd.ACCEPT} NO {target_player[1]}".encode())
 
-
     ### main
     try:
         # Step 1: Add player to the list and share the list
-        player_name = conn.recv(1024).decode()
-        conn.sendall(str(addr[1]).encode())
-        with lock:
-            connections[addr] = conn
-            players.append((player_name, addr))
-        
-        print(f"{player_name} connected from {addr}")
 
-        # listen
+        ### listen
         while True:
             # Step 2: Receive player requests
             data = conn.recv(1024).decode()
 
-            if data.startswith(cmd.REQUEST):
-                print('------REQUEST')
+            if data.startswith(cmd.NEW):
+                print('\tNEW PLAYER')
+                _, player_name = str(conn.recv(1024).decode()).split()
+                conn.sendall(str(addr[1]).encode())  # TODO player port
+                with lock:
+                    connections[addr] = conn
+                    players.append((player_name, addr))
+                
+                print(f"{player_name} connected from {addr}")
+
+            elif data.startswith(cmd.REQUEST):
+                print('\tREQUEST')
                 handle_request()
 
-            # TODO
-            elif data.startswith(cmd.CHECK):
+            elif data.startswith(cmd.CHECK):  # TODO
+                print('\tCHECK')
                 result = random.choice([True, False])
                 conn.sendall(f"WIN_STATUS {result}".encode())
 
             elif data == cmd.DISCONNECT:
+                print('\tDISCONNECT')
                 print(f"{player_name} disconnected.")
 
             elif data == cmd.LIST:
@@ -94,9 +96,6 @@ def handle_player(conn, addr):
         with lock:
             players = [(name, address) for name, address in players if address != addr]
 
-    
-
-
 
 # Server main loop
 def start_server():
@@ -107,13 +106,13 @@ def start_server():
 
     try:
         while True:
-            conn, addr = server_socket.accept()
+            conn, addr = server_socket.accept()  # TODO just 1 connection from r3?
+            print(f"Server {PORT} connected to router {addr}")
             threading.Thread(target=handle_player, args=(conn, addr)).start()
     except KeyboardInterrupt:
         print("Shutting down server...")
     finally:
         server_socket.close()
-
 
 if __name__ == '__main__':
     os.system('cls')

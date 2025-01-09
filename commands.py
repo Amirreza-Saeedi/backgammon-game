@@ -1,4 +1,4 @@
-
+NEW         = 'NEW_PLAYER'
 LIST        = 'LIST_PLAYERS'
 REQUEST     = 'PLAYER_REQUEST'
 CHAT        = 'CHAT_MESSAGE'
