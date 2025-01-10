@@ -7,7 +7,6 @@ from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 import base64
 from tkinter import Tk, messagebox
-from backgammon import my_id
 from crypto import decrypt_message, encrypt_message
 import commands as cmd
 import os
@@ -123,12 +122,12 @@ def listen_to_server(conn):  # TODO should handle more tasks
                 print('\n\tCHECK')
                 print()
                 result = msg.split()[1]
-                if result == my_id:
+                if result == player.id:
                     print("You Won.")
-                    bg.show_winner(bg.game.window, my_id + 1, bg.game)
-                elif result == (my_id +1) % 2:
+                    bg.show_winner(bg.game.window, player.id + 1, bg.game)
+                elif result == (player.id +1) % 2:
                     print("You Dicked also op won.")
-                    if my_id ==0:
+                    if player.id ==0:
                         bg.show_winner(bg.game.window, 1, bg.game)
                     else:
                         bg.show_winner(bg.game.window, 2, bg.game)
@@ -187,13 +186,13 @@ def listen_to_p2p():
                 respond = sweet_revenge("Do you want rematch?")
                 if respond:
                     send_to_p2p(p2p_conn, cmd.REMATCH)
-                    threading.Thread(target=run_game, daemon=True,args=(my_id,)).start()
+                    threading.Thread(target=run_game, daemon=True,args=(player.id,)).start()
                 else:
                     p2p_conn.close()
 
             elif msg.startswith(cmd.REMATCH):
                 print('\n\tREMATCH')
-                threading.Thread(target=run_game, daemon=True, args=(my_id,)).start()
+                threading.Thread(target=run_game, daemon=True, args=(player.id,)).start()
 
             else:
                 print('Error: Unknown p2p command.')
