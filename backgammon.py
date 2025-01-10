@@ -1,10 +1,12 @@
 import random
 import time
 import webbrowser
-import tkinter as tk
+from mttkinter import mtTkinter as tk
+# import tkinter as tk
 from tkinter import font, CENTER, messagebox
 from typing import List
 import sys
+import commands as cmd
 
 # 0 = player 1; 1 = player 2 / PC
 turn = 0
@@ -18,18 +20,12 @@ global image, image1, image2
 global label_mini_list
 global roll_button
 
+# XXX <
+conn = None
+my_id = None
+# XXX >
 
 class Game:
-    """
-        This class contains almost all methods needed to play backgammon in 2 players or in player vs pc mode.
-
-        Here are some videos that show how this app works:
-        https://youtu.be/ml5f4amx1wM
-        https://youtu.be/utUk00iJC-I
-        https://youtu.be/ZC16NrcVrdM
-
-        For more information about the code, check each method down below!
-    """
 
     def __init__(self, window, main_frame, player1, player2) -> None:
         """
@@ -639,7 +635,17 @@ class Game:
 
         return next_pos
 
-    def update_board(self, player_id, column_taken, column_pus):
+    def update_board(self, player_id, column_taken, column_pus):  
+        
+        # XXX <
+        global turn
+        global conn, my_id
+        # move and send
+        if my_id == turn:
+            print('------update')
+            send_to_p2p(f'{cmd.MOVE} {player_id} {column_taken} {column_pus}')
+        # XXX >
+
         """
         Based on the player that moved, first will be set the enemy and a poz_id list that helps with placing the
         buttons for the pieces on the board.
@@ -762,13 +768,10 @@ class Game:
         global turn
         if len(dice) == 0:
 
-            # my_turn(turn, self)
             if turn == 0:
                 turn = 1
                 label_mini_list[0].config(fg="white")
                 label_mini_list[1].config(fg="#80ff80")
-                if turn == 1 and self.name[1] == "PC":
-                    self.pc_play()
             else:
                 turn = 0
                 label_mini_list[1].config(fg="white")
@@ -852,13 +855,10 @@ class Game:
             else:
                 dice = []
 
-                # my_turn(turn, self)
                 if turn == 0:
                     turn = 1
                     label_mini_list[0].config(fg="white")
                     label_mini_list[1].config(fg="#80ff80")
-                    if turn == 1 and self.name[1] == "PC":
-                        self.pc_play()
                 else:
                     turn = 0
                     label_mini_list[1].config(fg="white")
@@ -868,13 +868,10 @@ class Game:
         else:
             dice = []
 
-            # my_turn(turn, self)
             if turn == 0:
                 turn = 1
                 label_mini_list[0].config(fg="white")
                 label_mini_list[1].config(fg="#80ff80")
-                if turn == 1 and self.name[1] == "PC":
-                    self.pc_play()
             else:
                 turn = 0
                 label_mini_list[1].config(fg="white")
@@ -934,13 +931,10 @@ class Game:
             global turn
             roll_button.config(state="normal")
 
-            # my_turn(player_id, self)
             if player_id == 0:
                 turn = 1
                 label_mini_list[0].config(fg="white")
                 label_mini_list[1].config(fg="#80ff80")
-                if turn == 1 and self.name[1] == "PC":
-                    self.pc_play()
             else:
                 turn = 0
                 label_mini_list[1].config(fg="white")
@@ -1019,9 +1013,12 @@ class Game:
         :return: None
         """
         global turn, dice
+        # XXX <
+        global my_id
+        # XXX >
 
         if turn == 0 and len(dice) > 0:
-            if player_id == 1:
+            if player_id != my_id:  # XXX
                 messagebox.showerror("Backgammon!!", "Not your piece")
             else:
                 if self.stats[player_id][0] == 0:
@@ -1032,7 +1029,7 @@ class Game:
                                         "on the board first.")
 
         elif turn == 1 and len(dice) > 0:
-            if player_id == 0:
+            if player_id != my_id:
                 messagebox.showerror("Backgammon!!", "Not your piece")
             else:
                 if self.stats[player_id][0] == 0:
@@ -1044,170 +1041,6 @@ class Game:
 
         else:
             messagebox.showerror("Backgammon!!", "You must roll the dice first")
-
-
-
-
-
-
-
-
-
-
-
-    def pc_move(self):
-        """
-        This method is meant for the PC.
-        First we check to be sure that the turn and player match. Then if the PC has any eliminated pieces, those will
-        be addressed first. It is checked if any of the columns of the opponent house are free and also corresponding
-        to the dice. If so the piece will be "revived" and checked once again if it has any eliminated pieces.
-
-        If there are no (more) eliminated pieces and PC still has dice number not used then he can move pieces to his
-        house.
-
-        When moving pieces: it is checked which columns the player has pieces on and added in a list. Then from that
-        list is extracted a random number and from that column will be moved a piece with a random dice from those
-        in the dice list. It is checked then if the move can actually be done and if it is all good then the move is
-        executed. If not the algorithm will repeat itself until it can make a move.
-        Obviously before trying to do a move it is checked to see if there is any move possible.
-
-        When no (more) moves are available the game shifts the turn to the other player: changes turn, changes state
-        for roll button in normal and removes all from dice list.
-
-        :return: None
-        """
-        global turn, dice, roll_button
-        if turn == 1 and self.name[turn] == "PC" and len(dice) > 0:
-            if self.stats[1][0] == 0:
-                if self.exist_move(1):
-                    global list_btn_option
-                    if len(list_btn_option) > 0:
-                        for btn in list_btn_option:
-                            btn.destroy()
-                        list_btn_option = []
-
-                    valid = []
-                    for i in range(0, 24):
-                        if len(self.board[1][i][0]) > 0:
-                            valid.append(i)
-
-                    id_column = random.randrange(0, len(valid))
-                    x = valid[id_column]
-                    while len(self.board[0][23 - x][0]) > 1 or len(self.board[1][x][0]) == 0 or x < 0 or x > 23:
-                        id_column = random.randrange(0, len(valid))
-                        x = valid[id_column]
-
-                    if x <= 11:
-                        y = 730
-                    else:
-                        y = 15
-
-                    if not self.all_in_house(1):
-                        next_pos = self.piece_next_place(1, x, y)
-                        for i in range(0, len(next_pos)):
-                            if next_pos[i][1] == 15:
-                                list_btn_option.append(tk.Button(self.main_frame, text=" ^ "))
-                                list_btn_option[i].place(x=(17 + self.board[1][next_pos[i][0]][1]), y=350)
-                            else:
-                                list_btn_option.append(tk.Button(self.main_frame, text=" v "))
-                                list_btn_option[i].place(x=(17 + self.board[1][next_pos[i][0]][1]), y=430)
-
-                        if len(list_btn_option) > 0:
-                            list_btn_option[0].config(command=lambda: self.move_piece(1, next_pos[0][0], x))
-                            if len(list_btn_option) == 2:
-                                list_btn_option[1].config(command=lambda: self.move_piece(1, next_pos[1][0], x))
-
-                            if self.name[1] == "PC":
-                                move = random.randrange(0, len(list_btn_option))
-                                list_btn_option[move].invoke()
-
-                    else:
-                        next_pos = self.end_piece_life(1, x, y)
-                        for i in range(0, len(next_pos)):
-                            if next_pos[i][1] == 15:
-                                list_btn_option.append(tk.Button(self.main_frame, text=" ^ "))
-                                list_btn_option[i].place(x=(17 + self.board[1][next_pos[i][0]][1]), y=350)
-                            elif next_pos[i][1] == 730:
-                                list_btn_option.append(tk.Button(self.main_frame, text=" v "))
-                                list_btn_option[i].place(x=(17 + self.board[1][next_pos[i][0]][1]), y=430)
-                            else:
-                                list_btn_option.append(tk.Button(self.main_frame, text="Take out"))
-                                if turn == 0:
-                                    list_btn_option[i].place(x=12, y=560)
-                                else:
-                                    list_btn_option[i].place(x=1133, y=560)
-
-                        if len(list_btn_option) > 0:
-                            if list_btn_option[0]["text"] == "Take out":
-                                list_btn_option[0].config(command=lambda: self.remove_piece(1, x))
-                            else:
-                                list_btn_option[0].config(command=lambda: self.move_piece(1, next_pos[0][0], x))
-
-                            if len(list_btn_option) == 2:
-                                if list_btn_option[1]["text"] == "Take out":
-                                    list_btn_option[1].config(command=lambda: self.remove_piece(1, x))
-                                else:
-                                    list_btn_option[1].config(command=lambda: self.move_piece(1, next_pos[1][0], x))
-
-                            if self.name[1] == "PC":
-                                move = random.randrange(0, len(list_btn_option))
-                                list_btn_option[move].invoke()
-
-        if len(dice) > 0:
-            self.pc_move()
-        elif not self.exist_move(1):
-            dice = []
-            self.pc_move()
-        else:
-            dice = []
-            roll_button.config(state="normal")
-            turn = 0
-            label_mini_list[1].config(fg="white")
-            label_mini_list[0].config(fg="#80ff80")
-
-    def pc_play(self):
-        """
-        This method starts the turn for the PC.
-        First the label colors are changed to show which player turn it is (because PC moves too fast we can't
-        actually see much of a difference).
-        Then the dice is rolled.
-        Then the 'pc_move' method is called so that the PC will make some moves (if he can).
-
-        Then the dice list is deleted, roll button is active again, the label colors are reversed so that the
-        next player can start a clean turn.
-
-        :return: None
-        """
-        label_mini_list[0].config(fg="white")
-        label_mini_list[1].config(fg="#80ff80")
-
-        global turn, dice, roll_button, dice_image
-        dice = []
-        roll_dice(self.main_frame, self)
-
-        self.pc_move()
-        dice = []
-        roll_button.config(state="normal")
-        turn = 0
-        label_mini_list[1].config(fg="white")
-        label_mini_list[0].config(fg="#80ff80")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1252,80 +1085,63 @@ def who_won(player):
 
 
 def roll_dice(main_frame, player):
-    """
-    This method is called when the dice is rolled. When rolled (because the PC move faster), the dice will wait
-    for 0.5 seconds in the hope that the dice won't be too similar from one turn to another.
-    2 numbers between 1 and 6 are generated randomly, if they are the same then the number will be added 4 times
-    in the dice list. If not, and the numbers are different, then they will be added each only once to the list.
-
-    After the dice for the turn are set, they will be shown to the players as follows: the old dice images for the
-    previous turn are deleted (destroyed) and then are shown the dice for the actual turn.
-    The dice image is saved in a list to know which widgets to destroy in the next turn.
-
-    :param main_frame: the frame attached to the window where we put the widgets
-    :param player: object of type Game that holds the game information
-    :type player: Game
-    :return: None
-    """
-    time.sleep(0.5)
-    global dice
-    zar1 = random.randrange(1, 7)
-    zar2 = random.randrange(1, 7)
-    if zar1 == zar2:
-        dice.append(zar1)
-        dice.append(zar1)
-        dice.append(zar1)
-        dice.append(zar1)
-    else:
-        dice.append(zar1)
-        dice.append(zar2)
-
+    global my_id  # XXX
     global image, turn
-    img1 = tk.PhotoImage(file="assets/dice1.png")
-    img2 = tk.PhotoImage(file="assets/dice2.png")
-    img3 = tk.PhotoImage(file="assets/dice3.png")
-    img4 = tk.PhotoImage(file="assets/dice4.png")
-    img5 = tk.PhotoImage(file="assets/dice5.png")
-    img6 = tk.PhotoImage(file="assets/dice6.png")
-    image = [img1, img2, img3, img4, img5, img6]
-
-    if turn == 0:
-        if len(dice_image) <= 0:
-            dice_image.append(tk.Label(main_frame, image=image[zar1 - 1]))
-            dice_image[0].place(x=780, y=380)
-
-            dice_image.append(tk.Label(main_frame, image=image[zar2 - 1]))
-            dice_image[1].place(x=830, y=380)
+    if turn == my_id: # XXX
+        time.sleep(0.5)
+        global dice
+        zar1 = random.randrange(1, 7)
+        zar2 = random.randrange(1, 7)
+        if zar1 == zar2:
+            dice.append(zar1)
+            dice.append(zar1)
+            dice.append(zar1)
+            dice.append(zar1)
         else:
-            dice_image[0].configure(image=image[zar1 - 1])
-            dice_image[0].place(x=780, y=380)
+            dice.append(zar1)
+            dice.append(zar2)
 
-            dice_image[1].configure(image=image[zar2 - 1])
-            dice_image[1].place(x=830, y=380)
+        img1 = tk.PhotoImage(file="assets/dice1.png")
+        img2 = tk.PhotoImage(file="assets/dice2.png")
+        img3 = tk.PhotoImage(file="assets/dice3.png")
+        img4 = tk.PhotoImage(file="assets/dice4.png")
+        img5 = tk.PhotoImage(file="assets/dice5.png")
+        img6 = tk.PhotoImage(file="assets/dice6.png")
+        image = [img1, img2, img3, img4, img5, img6]
 
-    roll_button.config(state="disabled")
-    if player.stats[turn][0] > 0:
-        player.revive(turn)
-        if len(dice) == 0:
+        if turn == 0:
+            if len(dice_image) <= 0:
+                dice_image.append(tk.Label(main_frame, image=image[zar1 - 1]))
+                dice_image[0].place(x=780, y=380)
 
-            # my_turn(turn, player)
-            if turn == 0:
-                # dice_image[0].pack()
-                # dice_image[1].pack()
-                turn = 1
-                label_mini_list[0].config(fg="white")
-                label_mini_list[1].config(fg="#80ff80")
-                if turn == 1 and player.name[1] == "PC":
-                    player.pc_play()
+                dice_image.append(tk.Label(main_frame, image=image[zar2 - 1]))
+                dice_image[1].place(x=830, y=380)
             else:
-                # dice_image[0].pack_forget()
-                # dice_image[1].pack_forget()
-                turn = 0
-                label_mini_list[1].config(fg="white")
-                label_mini_list[0].config(fg="#80ff80")
+                dice_image[0].configure(image=image[zar1 - 1])
+                dice_image[0].place(x=780, y=380)
 
-    if not player.exist_move(turn):
-        roll_button.config(state="normal")
+                dice_image[1].configure(image=image[zar2 - 1])
+                dice_image[1].place(x=830, y=380)
+
+        roll_button.config(state="disabled")
+        if player.stats[turn][0] > 0:
+            player.revive(turn)
+            if len(dice) == 0:
+
+                if turn == 0:
+                    turn = 1
+                    label_mini_list[0].config(fg="white")
+                    label_mini_list[1].config(fg="#80ff80")
+                else:
+                    turn = 0
+                    label_mini_list[1].config(fg="white")
+                    label_mini_list[0].config(fg="#80ff80")
+
+        if not player.exist_move(turn):
+            roll_button.config(state="normal")
+
+    else: # XXX
+        messagebox.showerror("Backgammon!!", "Not your turn")
 
 
 def show_winner(window, id_player, player):
@@ -1400,103 +1216,14 @@ def player_gui_init(window):
     roll_button.place(x=360, y=380)
 
 
-def pc_gui_init(window):
-    """
-    This method initialises the game between player and PC.
-    It creates a frame on top of the window in which will put as background the board for the game.
-    On top of the background will be added the 'Roll' button and from here the actual playable game will be done via
-    Game class.
-
-    :param window: the window in which we see and play the game, used for displaying widgets
-    :return: None
-    """
-    main_frame = tk.Frame(window, width=1200, height=800)
-    main_frame.pack(side="top", expand=False, fill="both")
-
-    global background, game, dice_image, roll_button
-    background = tk.PhotoImage(file="assets/board2.png")
-    label_background = tk.Label(main_frame, image=background)
-    label_background.place(x=-3, y=-2)
-
-    game = Game(window, main_frame, "player 1", "PC")
-
-    dice_image = []
-    text_font = font.Font(size=14)
-    roll_button = tk.Button(main_frame, text="Roll", font=text_font, bg='#4e555f', fg='white', border=2,
-                            command=lambda: roll_dice(main_frame, game))
-    roll_button.place(x=360, y=380)
-
 
 def main_menu(window):
-    """
-    This method creates and defines the main menu screen, the first menu and first screen to pop up when we run the app.
-    It adds and background and 3 buttons: 'How to play', 'Player vs Player' and 'Player vs PC'
-
-    :param window: the window in which we see and play the game, used for displaying widgets
-    :return: None
-    """
-    main_frame = tk.Frame(window, width=1200, height=800)
-    main_frame.pack(side="top", expand=False, fill="both")
-
-    global background
-    background = tk.PhotoImage(file="assets/background.png")
-    label_background = tk.Label(main_frame, image=background)
-    label_background.place(x=-5, y=-2)
-
-    button_list: List[tk.Button] = []
-    button_id = 0
-    text_font = font.Font(size=15)
-
-    def help_callback():
-        """
-        When the 'How to play' button is pressed this method is called and opens an wikipedia page for the user to see
-        more information about Backgammon.
-
-        :return: None
-        """
-        webbrowser.open("https://en.wikipedia.org/wiki/Backgammon")
-
-    button_list.append(tk.Button(main_frame, text="How to play", bg="#c2fcdd", fg="#002e1d", font=text_font,
-                                 command=lambda: help_callback()))
-    button_list[button_id].place(x=530, y=340)
-    button_id += 1
-
     def player_callback(main_window):
-        """
-        This method is called when the "Player vs Player" button is pressed.
-        It creates a new window for the game to assure that widgets won't crawl on top of each other.
-        It calls the 'player_gui_init' method to start the game (more info at that method)
-
-        :param main_window: the window in which we see and play the game, used for displaying widgets
-        :return: None
-        """
         main_window.destroy()
         new_window = create_window()
         player_gui_init(new_window)
 
-    button_list.append(tk.Button(main_frame, text="Player vs player", bg="#c2fcdd", fg="#002e1d", font=text_font,
-                                 command=lambda: player_callback(window)))
-    button_list[button_id].place(x=505, y=400)
-    button_id += 1
-
-    def pc_callback(main_window):
-        """
-        This method is called when the "Player vs PC" button is pressed.
-        It creates a new window for the game to assure that widgets won't crawl on top of each other.
-        It calls the 'pc_gui_init' method to start the game (more info at that method)
-
-        :param main_window: the window in which we see and play the game, used for displaying widgets
-        :return: None
-        """
-        main_window.destroy()
-        new_window = create_window()
-        pc_gui_init(new_window)
-
-    button_list.append(tk.Button(main_frame, text="Player vs PC", bg="#c2fcdd", fg="#002e1d", font=text_font,
-                                 command=lambda: pc_callback(window)))
-    button_list[button_id].place(x=520, y=460)
-    button_id += 1
-
+    player_callback(window)
     window.mainloop()
 
 
@@ -1506,6 +1233,7 @@ def create_window():
 
     :return: the window in which will be displayed the game
     """
+
     window = tk.Tk()
     window.title("Backgammon!!")
 
@@ -1535,46 +1263,23 @@ class NoDevSupport:
         pass
 
 
-def main():
-    """
-    The main method of this app, creates the window for the game and calls the main_menu method to get the app running.
-
-    Due to the need to verify at each step if the current player can make any move, there are a considerable number of
-    recursions that add up and because Python has a limit of 1000 recursions sometimes the heap gets full to the max
-    and an error is thrown that tells just that. Even thought an error is thrown, the app does not stop and in the end
-    all of the recursion steps are done and the result is a correct one.
-    (I tried multiple ways of dealing with this situation, but I did not find one that could stop the error from
-    occurring and also let the program run as it should.)
-
-    Because I couldn't find any other way to solve this problem, I decided to let it be as long as it doesn't affect my
-    program in a negative way. Because it was not quite user friendly to throw that much information at once in the
-    console I made the class NoDevSupport to let the system know that when dealing with errors it should not show them.
-    (While testing the app that line was commented to make sure that the program worked as it was supposed to.)
-    :return: None
-    """
+def main(p2p_conn, id):
+    # XXX <
+    global conn, my_id, game
+    my_id = id
+    conn = p2p_conn
+    # XXX >
     sys.stderr = NoDevSupport()
     window = create_window()
     main_menu(window)
+    game.update_board(0, 12, 10) # XXX
+
     window.mainloop()
 
 
 if __name__ == '__main__':
     main()
 
-def my_turn(cnd, game):
-    global turn
-    global dice_image
-    if cnd == 0:
-        dice_image[0].pack()
-        dice_image[1].pack()
-        turn = 1
-        label_mini_list[0].config(fg="white")
-        label_mini_list[1].config(fg="#80ff80")
-        if turn == 1 and game.name[1] == "PC":
-            game.pc_play()
-    else:
-        dice_image[0].pack_forget()
-        dice_image[1].pack_forget()
-        turn = 0
-        label_mini_list[1].config(fg="white")
-        label_mini_list[0].config(fg="#80ff80")
+def send_to_p2p(msg: str):
+    global conn
+    conn.sendall(msg.strip().encode())

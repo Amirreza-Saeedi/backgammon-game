@@ -9,6 +9,7 @@ import commands as cmd
 import os
 import router as rt
 from player import Player
+import backgammon as bg
 
 HOST = '127.0.0.1'
 PORT = rt.R1_PORT
@@ -61,7 +62,7 @@ def listen_to_server(conn):  # TODO should handle more tasks
         - request
         - roll dice
     '''
-    global p2p_conn
+    global p2p_conn, player
 
     def print_server():
         print('S: ' + msg)
@@ -90,6 +91,9 @@ def listen_to_server(conn):  # TODO should handle more tasks
                 p2p_thread = threading.Thread(target=listen_to_p2p, daemon=True)
                 p2p_thread.start()
 
+                threading.Thread(target=run_game, daemon=True, args=[1,]).start()
+                player.id = 1
+
                 print('Connected to player', name, ip, port)
 
             elif msg.startswith(cmd.ACCEPT):
@@ -117,13 +121,14 @@ def listen_to_server(conn):  # TODO should handle more tasks
                 #TODO
 
         except Exception as e:
-            print("Connection closed by server.", e)
+            print("Connection cs closed by server.", e)
             break
 
 
 def listen_to_p2p():
     '''
         - chat
+        - move
     '''
     global p2p_conn
     while True:
@@ -134,11 +139,21 @@ def listen_to_p2p():
             if msg.startswith(cmd.CHAT):
                 print('\n\tCHAT')
                 print('<<<', msg)
+
+            elif msg.startswith(cmd.MOVE):
+                print('\n\tMOVE')
+                print(msg)
+                _, player_id, column_taken, column_pus = msg.split()
+                print('----before')
+                print('game', bg.game)
+                bg.game.update_board(int(player_id), int(column_taken), int(column_pus))
+                print('----after')
+
             else:
                 print('Error: Unknown p2p command.')
 
         except Exception as e:
-            print("Connection closed by server.", e)
+            print("Connection p2p closed.", e)
             break
     pass
 
@@ -168,6 +183,13 @@ def connect_to_server():
     threading.Thread(target=listen_to_server, daemon=True, args=[conn]).start()
 
     return conn
+
+def run_game(my_id):
+    global p2p_conn
+    if p2p_conn:
+        bg.main(p2p_conn, my_id)
+    else:
+        print('Error: No p2p connection')
 
 def handle_commands(conn):
     global player
@@ -200,6 +222,10 @@ def handle_commands(conn):
                     print(f"Connection accepted from {op_addr}")
                     p2p_thread = threading.Thread(target=listen_to_p2p, daemon=True)
                     p2p_thread.start()
+
+                    threading.Thread(target=run_game, daemon=True, args=[0,]).start()
+                    player.id = 0
+
                     break
 
                 if e_time > 10:
@@ -236,6 +262,10 @@ def handle_commands(conn):
                 print('Error: no p2p connection.')
             # p2p_conn.sendall(cmd.CHAT.encode())
             pass
+
+        ### offline commands
+        # elif command == 'play':
+        #     run_game(player.id)
 
         else:
             print("Unknown command.")
