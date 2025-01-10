@@ -1161,20 +1161,7 @@ def roll_dice(zar1,zar2):
 
 
 def show_winner(window, id_player, player):
-    """
-    This method shows the winner to both players. If somebody won, this method is called.
-    When called, it creates a small canvas centered on top of the window with all the widgets added lastly,
-    black background and random colored circles to catch the eye of the players that something awesome happened.
-    Finally on top of the circles is shown which player did win.
-
-    :param window: the window in which we see and play the game, used for displaying widgets
-    :param id_player: player id represented as list index (0 - player 1; 1 - player 2 or PC)
-    :param player: object of type Game that holds the game information
-    :type player: Game
-    :return: None
-    """
     roll_button.config(state="disabled")
-    time.sleep(1)
     if id_player == 1:
         text = player.name[0]
     else:
@@ -1203,22 +1190,32 @@ def show_winner(window, id_player, player):
     canvas.create_window(300, 200, window=label_winner)
 
     #TODO
-    time.sleep(5)
-    global to_be_destroyed
+      # Schedule cleanup after 5 seconds
+    window.after(5000, lambda: cleanup(window))
+
+def cleanup(window):
+    """Clean up all windows and exit the application."""
+    # exit()
+    global to_be_destroyed, main_frame, game
+    
+    # Destroy specific widgets
     for w in to_be_destroyed:
-        try:    
+        try:
             w.destroy()
-        except Exception as e:
+        except Exception:
             pass
     to_be_destroyed = []
-    global main_frame
-    main_frame.destroy()
-    canvas.destroy()
-    global game
-    game.window.destroy()
-    game.main_frame.destroy()
-    window.destroy()
-    exit(0)
+
+    # Destroy main frame and game-related widgets
+    try:
+        if main_frame:
+            main_frame.destroy()
+        if game and hasattr(game, 'window'):
+            game.window.destroy()
+        if game and hasattr(game, 'main_frame'):
+            game.main_frame.destroy()
+    except Exception:
+        pass
 
     # window.mainloop
 

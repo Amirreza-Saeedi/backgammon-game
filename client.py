@@ -13,6 +13,7 @@ import os
 import router as rt
 from player import Player
 import backgammon as bg
+import easygui
 
 HOST = '127.0.0.1'
 PORT = rt.R1_PORT
@@ -31,7 +32,9 @@ KEYS[1] = b'abcdabcdabcdabcd'
 KEYS[2] = b'!@#$!@#$!@#$!@#$'
 
 def sweet_revenge(text):
-    response = messagebox.askyesno("revenge time", text)
+    # response = messagebox.askyesno("revenge time", text)
+    response = easygui.ynbox(text, title="Confirmation", choices=("Yes", "No"))
+
     return response
 
 def start_game():
@@ -122,26 +125,37 @@ def listen_to_server(conn):  # TODO should handle more tasks
                 print('\n\tCHECK')
                 print_server()
                 result = int(msg.split()[1])
+
                 if result == player.id:
                     print("You Won.")
                     bg.show_winner(bg.game.window, player.id + 1, bg.game)
+
                 elif result == (player.id +1) % 2:
                     print("You Dicked also op won.")
+                    thread = None
                     if player.id ==0:
-                        bg.show_winner(bg.game.window, 1, bg.game)
+                        thread = threading.Thread(target=lambda: bg.show_winner(bg.game.window, 1, bg.game))
                     else:
-                        bg.show_winner(bg.game.window, 2, bg.game)
+                        thread = threading.Thread(target=lambda: bg.show_winner(bg.game.window, 2, bg.game))
+                    # time.sleep(5)
+                    thread.start()
+                    thread.join()
 
                     # Create the main Tkinter window
-                    root = Tk()
-                    root.withdraw()  # Hide the root window (optional if you only want the dialog)
+                    # root = Tk()
+                    # root.withdraw()  # Hide the root window (optional if you only want the dialog)
 
                     # Display the Yes/No dialog
                     respond = sweet_revenge("Do you want to revenge and rematch?")
+                    # respond = messagebox.askyesno("revenge time", '?????')
+
+                    print('respond', respond)
                     if respond:
-                        send_to_server(p2p_conn, cmd.REVENGE)
+                        send_to_p2p(p2p_conn, cmd.REVENGE)
                     else:
                         p2p_conn.close()
+                        p2p_conn = None
+                        print('-----p2p closed')
             #TODO
 
         except Exception as e:
@@ -194,11 +208,13 @@ def listen_to_p2p():
 
                 print('\n\tREVENGE')
                 respond = sweet_revenge("Do you want rematch?")
+
                 if respond:
                     send_to_p2p(p2p_conn, cmd.REMATCH)
                     threading.Thread(target=run_game, daemon=True,args=(player.id,)).start()
                 else:
                     p2p_conn.close()
+                    p2p_conn = None
 
             elif msg.startswith(cmd.REMATCH):
                 print('\n\tREMATCH')
