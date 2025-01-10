@@ -130,6 +130,9 @@ def listen_to_p2p():
         - chat
         - move
     '''
+    def print_client():
+        print('C:', msg)
+
     global p2p_conn
     while True:
         try:
@@ -140,14 +143,21 @@ def listen_to_p2p():
                 print('\n\tCHAT')
                 print('<<<', msg)
 
+            # cmd id ct cp
             elif msg.startswith(cmd.MOVE):
                 print('\n\tMOVE')
-                print(msg)
+                print_client()
                 _, player_id, column_taken, column_pus = msg.split()
-                print('----before')
-                print('game', bg.game)
                 bg.game.update_board(int(player_id), int(column_taken), int(column_pus))
-                print('----after')
+
+            # cmd turn
+            elif msg.startswith(cmd.TURN):
+                print('\n\tTURN')
+                print_client()
+                _, nturn = msg.split()
+                bg.game.set_turn(int(nturn), both=False)
+
+
 
             else:
                 print('Error: Unknown p2p command.')
@@ -212,30 +222,25 @@ def handle_commands(conn):
             print(f"Client listening on {HOST}:{player.port}")
 
             print('Waiting 10 seconds for accept...')
-            s_time = time.time()
-            e_time = 0
+            p2p_socket.settimeout(10)
 
             try:
-                while e_time < 10:
-                    e_time = time.time() - s_time
-                    p2p_conn, op_addr = p2p_socket.accept()
-                    print(f"Connection accepted from {op_addr}")
-                    p2p_thread = threading.Thread(target=listen_to_p2p, daemon=True)
-                    p2p_thread.start()
+                p2p_conn, op_addr = p2p_socket.accept()
+                print(f"Connection accepted from {op_addr}")
+                p2p_thread = threading.Thread(target=listen_to_p2p, daemon=True)
+                p2p_thread.start()
 
-                    threading.Thread(target=run_game, daemon=True, args=[0,]).start()
-                    player.id = 0
-
-                    break
-
-                if e_time > 10:
-                    print("No connection happend.")
-                    p2p_socket.close()
+                threading.Thread(target=run_game, daemon=True, args=[0,]).start()
+                player.id = 0
 
             except KeyboardInterrupt:  # TODO tmp for accept()
                 print("Shutting down server...")
+            except socket.timeout:
+                print("Timeout happend.")
             except Exception as e:
                 print(f'Error in request {e}')
+            finally:
+                p2p_socket.close()
 
 
         elif command.startswith('check'):

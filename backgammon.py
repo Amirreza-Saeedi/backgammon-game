@@ -642,7 +642,6 @@ class Game:
         global conn, my_id
         # move and send
         if my_id == turn:
-            print('------update')
             send_to_p2p(f'{cmd.MOVE} {player_id} {column_taken} {column_pus}')
         # XXX >
 
@@ -769,13 +768,15 @@ class Game:
         if len(dice) == 0:
 
             if turn == 0:
-                turn = 1
-                label_mini_list[0].config(fg="white")
-                label_mini_list[1].config(fg="#80ff80")
+                # turn = 1
+                self.set_turn(1)
+                # label_mini_list[0].config(fg="white")
+                # label_mini_list[1].config(fg="#80ff80")
             else:
-                turn = 0
-                label_mini_list[1].config(fg="white")
-                label_mini_list[0].config(fg="#80ff80")
+                # turn = 0
+                self.set_turn(0)
+                # label_mini_list[1].config(fg="white")
+                # label_mini_list[0].config(fg="#80ff80")
             
             roll_button.config(state="normal")
 
@@ -856,26 +857,30 @@ class Game:
                 dice = []
 
                 if turn == 0:
-                    turn = 1
-                    label_mini_list[0].config(fg="white")
-                    label_mini_list[1].config(fg="#80ff80")
+                    # turn = 1
+                    self.set_turn(1)
+                    # label_mini_list[0].config(fg="white")
+                    # label_mini_list[1].config(fg="#80ff80")
                 else:
-                    turn = 0
-                    label_mini_list[1].config(fg="white")
-                    label_mini_list[0].config(fg="#80ff80")
+                    # turn = 0
+                    self.set_turn(0)
+                    # label_mini_list[1].config(fg="white")
+                    # label_mini_list[0].config(fg="#80ff80")
                 
                 roll_button.config(state="normal")
         else:
             dice = []
 
             if turn == 0:
-                turn = 1
-                label_mini_list[0].config(fg="white")
-                label_mini_list[1].config(fg="#80ff80")
+                # turn = 1
+                self.set_turn(1)
+                # label_mini_list[0].config(fg="white")
+                # label_mini_list[1].config(fg="#80ff80")
             else:
-                turn = 0
-                label_mini_list[1].config(fg="white")
-                label_mini_list[0].config(fg="#80ff80")
+                # turn = 0
+                self.set_turn(0)
+                # label_mini_list[1].config(fg="white")
+                # label_mini_list[0].config(fg="#80ff80")
 
             roll_button.config(state="normal")
 
@@ -932,13 +937,15 @@ class Game:
             roll_button.config(state="normal")
 
             if player_id == 0:
-                turn = 1
-                label_mini_list[0].config(fg="white")
-                label_mini_list[1].config(fg="#80ff80")
+                # turn = 1
+                self.set_turn(1)
+                # label_mini_list[0].config(fg="white")
+                # label_mini_list[1].config(fg="#80ff80")
             else:
-                turn = 0
-                label_mini_list[1].config(fg="white")
-                label_mini_list[0].config(fg="#80ff80")
+                # turn = 0
+                self.set_turn(0)
+                # label_mini_list[1].config(fg="white")
+                # label_mini_list[0].config(fg="#80ff80")
 
     def revive(self, player_id):
         """
@@ -997,12 +1004,6 @@ class Game:
                 list_btn_option[choice].invoke()
 
 
-
-
-
-
-
-
     def move(self, player_id, x, y):
         """
         This method will call the methods needed for playing the actual turn, but before that it will run some
@@ -1042,8 +1043,19 @@ class Game:
         else:
             messagebox.showerror("Backgammon!!", "You must roll the dice first")
 
-
-
+    # XXX
+    def set_turn(self, val: int, both:bool=True):
+        '''
+            set turn for players
+            recolor names
+        '''
+        global turn
+        turn = val
+        c0, c1 = ['white', '#80ff80'] if val == 1 else ['#80ff80', 'white']
+        label_mini_list[0].config(fg=c0)
+        label_mini_list[1].config(fg=c1)
+        if both:
+            send_to_p2p(cmd.TURN + ' ' + str(val))
 
 
 
@@ -1075,17 +1087,8 @@ def who_won(player):
 
 
 
-
-
-
-
-
-
-
-
-
 def roll_dice(main_frame, player):
-    global my_id  # XXX
+    global my_id, game  # XXX
     global image, turn
     if turn == my_id: # XXX
         time.sleep(0.5)
@@ -1109,19 +1112,18 @@ def roll_dice(main_frame, player):
         img6 = tk.PhotoImage(file="assets/dice6.png")
         image = [img1, img2, img3, img4, img5, img6]
 
-        if turn == 0:
-            if len(dice_image) <= 0:
-                dice_image.append(tk.Label(main_frame, image=image[zar1 - 1]))
-                dice_image[0].place(x=780, y=380)
+        if len(dice_image) <= 0:
+            dice_image.append(tk.Label(main_frame, image=image[zar1 - 1]))
+            dice_image[0].place(x=780, y=380)
 
-                dice_image.append(tk.Label(main_frame, image=image[zar2 - 1]))
-                dice_image[1].place(x=830, y=380)
-            else:
-                dice_image[0].configure(image=image[zar1 - 1])
-                dice_image[0].place(x=780, y=380)
+            dice_image.append(tk.Label(main_frame, image=image[zar2 - 1]))
+            dice_image[1].place(x=830, y=380)
+        else:
+            dice_image[0].configure(image=image[zar1 - 1])
+            dice_image[0].place(x=780, y=380)
 
-                dice_image[1].configure(image=image[zar2 - 1])
-                dice_image[1].place(x=830, y=380)
+            dice_image[1].configure(image=image[zar2 - 1])
+            dice_image[1].place(x=830, y=380)
 
         roll_button.config(state="disabled")
         if player.stats[turn][0] > 0:
@@ -1129,13 +1131,15 @@ def roll_dice(main_frame, player):
             if len(dice) == 0:
 
                 if turn == 0:
-                    turn = 1
-                    label_mini_list[0].config(fg="white")
-                    label_mini_list[1].config(fg="#80ff80")
+                    # turn = 1
+                    game.set_turn(1)
+                    # label_mini_list[0].config(fg="white")
+                    # label_mini_list[1].config(fg="#80ff80")
                 else:
-                    turn = 0
-                    label_mini_list[1].config(fg="white")
-                    label_mini_list[0].config(fg="#80ff80")
+                    # turn = 0
+                    game.set_turn(0)
+                    # label_mini_list[1].config(fg="white")
+                    # label_mini_list[0].config(fg="#80ff80")
 
         if not player.exist_move(turn):
             roll_button.config(state="normal")
@@ -1235,7 +1239,7 @@ def create_window():
     """
 
     window = tk.Tk()
-    window.title("Backgammon!!")
+    window.title(f'PLAYER {my_id}')
 
     window.configure(width=1200, height=800)
     window.resizable(False, False)
@@ -1280,6 +1284,8 @@ def main(p2p_conn, id):
 if __name__ == '__main__':
     main()
 
+# XXX my funcs
 def send_to_p2p(msg: str):
     global conn
     conn.sendall(msg.strip().encode())
+
