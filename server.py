@@ -86,8 +86,8 @@ def handle_player(conn, addr):
             elif data.startswith(cmd.CHECK):  # TODO
                 print('\tCHECK')
                 print_client()
-                result = random.choice([True, False])
-                conn.sendall(f"WIN_STATUS {result}".encode())
+                result = data.split()[1]
+                send_to_client(cmd.CHECK + ' ' + (result=="15"))
 
             elif data == cmd.DISCONNECT:
                 print('\tDISCONNECT')

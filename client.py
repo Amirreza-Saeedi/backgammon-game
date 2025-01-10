@@ -24,6 +24,10 @@ KEYS[0] = b'1234123412341234'
 KEYS[1] = b'abcdabcdabcdabcd'
 KEYS[2] = b'!@#$!@#$!@#$!@#$'
 
+#intiger for check is player win or not #TODO
+PlayerScore = 0
+
+
 def start_game():
     pass
 
@@ -101,6 +105,16 @@ def listen_to_server(conn):  # TODO should handle more tasks
                 d2 = int(d2)
                 # TODO set dices in game
 
+            #cmd true/False
+            elif msg.startswith(cmd.CHECK):
+                print('\n\tCHECK')
+                print()
+                result = msg.split()[1]
+                if result == 'True':
+                    print("You Won")
+                else:
+                    print("You Are Dick")
+                #TODO
 
         except Exception as e:
             print("Connection closed by server.", e)
@@ -199,7 +213,7 @@ def handle_commands(conn):
 
 
         elif command == 'check':
-            send_to_server(conn, cmd.CHECK)
+            send_to_server(conn, cmd.CHECK + ' ' +  str(PlayerScore))
 
         elif command == 'disconnect':
             send_to_server(conn, cmd.DISCONNECT)
