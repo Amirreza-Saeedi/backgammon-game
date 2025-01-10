@@ -55,23 +55,20 @@ def handle_player(conn, addr):
     ### main
     try:
         # Step 1: Add player to the list and share the list
+        print('\tNEW PLAYER')
+        player_name, ip, port = str(conn.recv(1024).decode()).split()
+        with lock:
+            connections[addr] = conn
+            players.append((player_name, addr))
+        
+        print(f"{player_name} connected from {addr}")
 
         ### listen
         while True:
             # Step 2: Receive player requests
             data = conn.recv(1024).decode()
 
-            if data.startswith(cmd.NEW):
-                print('\tNEW PLAYER')
-                _, player_name = str(conn.recv(1024).decode()).split()
-                conn.sendall(str(addr[1]).encode())  # TODO player port
-                with lock:
-                    connections[addr] = conn
-                    players.append((player_name, addr))
-                
-                print(f"{player_name} connected from {addr}")
-
-            elif data.startswith(cmd.REQUEST):
+            if data.startswith(cmd.REQUEST):
                 print('\tREQUEST')
                 handle_request()
 
@@ -106,7 +103,7 @@ def start_server():
 
     try:
         while True:
-            conn, addr = server_socket.accept()  # TODO just 1 connection from r3?
+            conn, addr = server_socket.accept()
             print(f"Server {PORT} connected to router {addr}")
             threading.Thread(target=handle_player, args=(conn, addr)).start()
     except KeyboardInterrupt:

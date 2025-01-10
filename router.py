@@ -10,52 +10,61 @@ import os
 R1_PORT = 60_001
 R2_PORT = 60_002
 R3_PORT = 60_003
-S_PORT = 10_000
-IP = '127.0.0.1'
+S_PORT  = 10_000
+IP      = '127.0.0.1'
 
 # Router class
 class Router:
-    '''
-        good for r2, r3
-        but not r1
-    '''
 
-    server_thread = None
-    client_thread = None
-    s_conn = None
-    c_conn = None
-
-    def __init__(self, port, next_port, key):
+    def __init__(self, port, next_port):
         self.port = port
         self.next_port = next_port
-        self.key = key
 
     # server -> client
-    def listen_to_server(self):    
+    def listen_to_server(self, s_conn, c_conn):    
         while True:
-            msg = self.s_conn.recv(1024).decode()
+            msg = s_conn.recv(1024).decode()
             print('\tSERVER')
             print('msg:', msg)
             en_msg = encrypt_message(self.key, msg)
-            self.c_conn.sendall(en_msg.encode())
-        pass
+            c_conn.sendall(en_msg.encode())
 
     # client -> server
-    def listen_to_client(self):
+    def listen_to_client(self, c_conn, s_conn):
+
+        '''
+            first recv keys in 3 msg
+            msgs are non-crypted keys:
+            1- key1
+            2- key2 
+            3- key3
+        '''
+        # set key
+        msg = str(c_conn.recv(1024).decode())
+        print('key:', msg)
+        self.key = msg.encode()  # TODO encode or not?
+
+        # main loop
         while True:
-            msg = self.c_conn.recv(1024).decode()
+            msg = c_conn.recv(1024).decode()
             print('\tCLIENT')
             print('msg:', msg)
             de_msg = decrypt_message(self.key, msg)
-            self.s_conn.sendall(de_msg.encode())
-        pass
+            s_conn.sendall(de_msg.encode())
 
+    def handle_client(self, c_conn):
 
-    def connect_to_server(self):
-        self.s_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s_conn.connect((IP, self.next_port))
-        self.server_thread = threading.Thread(target=self.listen_to_server)
-        self.server_thread.start()
+        # conn to server
+        s_conn = self.connect_to_server(c_conn=c_conn)
+
+        # listen to client
+        self.listen_to_client(c_conn=c_conn, s_conn=s_conn)
+
+    def connect_to_server(self, c_conn):
+        s_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s_conn.connect((IP, self.next_port))
+        threading.Thread(target=self.listen_to_server, daemon=True, args=(s_conn, c_conn)).start()
+        return s_conn
 
     def accept_client(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -65,21 +74,15 @@ class Router:
             print(f"Router {self.port} listening...")
             while True:
                 try:
-                    self.c_conn, addr = s.accept()
+                    conn, addr = s.accept()
                     print(f"Router {self.port} connected to {addr}")
-                    # threading.Thread(target=self.listen_to_client, daemon=True).start()
-                    self.client_thread = threading.Thread(target=self.listen_to_client)
-                    self.client_thread.start()
+                    threading.Thread(target=self.handle_client, daemon=True, args=(conn, )).start()
                 except Exception as e:
                     print(f"Router {self.port} error: {e}")
                     pass
 
     def start(self):
         os.system('cls')
-
-        # connect to server
-        self.connect_to_server()
-
         # accept client
         self.accept_client()
 
