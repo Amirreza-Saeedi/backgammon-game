@@ -86,8 +86,14 @@ def handle_player(conn, addr):
             elif data.startswith(cmd.CHECK):  # TODO
                 print('\tCHECK')
                 print_client()
-                result = data.split()[1]
-                send_to_client(cmd.CHECK + ' ' + str(result=="15"))
+                p1 = data.split()[1]
+                p2 = data.split()[2]
+                if p1 == "15":
+                    send_to_client(cmd.CHECK + ' ' + '0')
+                elif p2 == "15":
+                    send_to_client(cmd.CHECK + ' ' + '1')
+                else:
+                    send_to_client(cmd.CHECK + ' ' + '-1')
 
             elif data == cmd.DISCONNECT:
                 print('\tDISCONNECT')
