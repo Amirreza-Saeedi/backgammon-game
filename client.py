@@ -1,9 +1,12 @@
 import socket
 import threading
 import time
+from math import trunc
+
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 import base64
+from tkinter import Tk, messagebox
 from crypto import decrypt_message, encrypt_message
 import commands as cmd
 import os
@@ -14,6 +17,8 @@ import backgammon as bg
 HOST = '127.0.0.1'
 PORT = rt.R1_PORT
 
+game_thread = None
+conn = None
 p2p_socket = None
 op_addr = None
 p2p_conn = None
@@ -25,9 +30,9 @@ KEYS[0] = b'1234123412341234'
 KEYS[1] = b'abcdabcdabcdabcd'
 KEYS[2] = b'!@#$!@#$!@#$!@#$'
 
-#intiger for check is player win or not #TODO
-player_score = 0
-
+def sweet_revenge(text):
+    response = messagebox.askyesno("revenge time", text)
+    return response
 
 def start_game():
     pass
@@ -62,8 +67,9 @@ def listen_to_server(conn):  # TODO should handle more tasks
         - request
         - roll dice
     '''
-    global p2p_conn, player
-
+    global p2p_conn
+    global player
+    global game_thread
     def print_server():
         print('S: ' + msg)
 
@@ -91,7 +97,8 @@ def listen_to_server(conn):  # TODO should handle more tasks
                 p2p_thread = threading.Thread(target=listen_to_p2p, daemon=True)
                 p2p_thread.start()
 
-                threading.Thread(target=run_game, daemon=True, args=[1,]).start()
+                game_thread = threading.Thread(target=run_game, daemon=True, args=[1,])
+                game_thread.start()
                 player.id = 1
 
                 print('Connected to player', name, ip, port)
@@ -108,17 +115,34 @@ def listen_to_server(conn):  # TODO should handle more tasks
                 d1 = int(d1)
                 d2 = int(d2)
                 # TODO set dices in game
+                bg.roll_dice(d1, d2)
 
             #cmd true/False
             elif msg.startswith(cmd.CHECK):
                 print('\n\tCHECK')
                 print()
                 result = msg.split()[1]
-                if result == 'True':
-                    print("You Won")
-                else:
-                    print("You Are Dick")
-                #TODO
+                if result == player.id:
+                    print("You Won.")
+                    bg.show_winner(bg.game.window, player.id + 1, bg.game)
+                elif result == (player.id +1) % 2:
+                    print("You Dicked also op won.")
+                    if player.id ==0:
+                        bg.show_winner(bg.game.window, 1, bg.game)
+                    else:
+                        bg.show_winner(bg.game.window, 2, bg.game)
+
+                    # Create the main Tkinter window
+                    root = Tk()
+                    root.withdraw()  # Hide the root window (optional if you only want the dialog)
+
+                    # Display the Yes/No dialog
+                    respond = sweet_revenge("Do you want to revenge and rematch?")
+                    if respond:
+                        send_to_server(p2p_conn, cmd.REVENGE)
+                    else:
+                        p2p_conn.close()
+            #TODO
 
         except Exception as e:
             print("Connection cs closed by server.", e)
@@ -134,6 +158,7 @@ def listen_to_p2p():
         print('C:', msg)
 
     global p2p_conn
+    global conn
     while True:
         try:
             msg = str(p2p_conn.recv(1024).decode())
@@ -159,15 +184,35 @@ def listen_to_p2p():
 
 
 
+            elif msg.startswith(cmd.CHECK):
+                print('\n\tCHECK')
+                p1 = bg.game.stats[0][1]
+                p2 = bg.game.stats[1][1]
+                send_to_server(conn, cmd.CHECK + ' ' + str(p1) + ' ' + str(p2))
+
+            elif msg.startswith(cmd.REVENGE):
+
+                print('\n\tREVENGE')
+                respond = sweet_revenge("Do you want rematch?")
+                if respond:
+                    send_to_p2p(p2p_conn, cmd.REMATCH)
+                    threading.Thread(target=run_game, daemon=True,args=(player.id,)).start()
+                else:
+                    p2p_conn.close()
+
+            elif msg.startswith(cmd.REMATCH):
+                print('\n\tREMATCH')
+                threading.Thread(target=run_game, daemon=True, args=(player.id,)).start()
+
             else:
                 print('Error: Unknown p2p command.')
 
         except Exception as e:
             print("Connection p2p closed.", e)
             break
-    pass
 
 def connect_to_server():
+    global conn
     # connect
     conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     conn.connect((HOST, PORT))
@@ -197,13 +242,14 @@ def connect_to_server():
 def run_game(my_id):
     global p2p_conn
     if p2p_conn:
-        bg.main(p2p_conn, my_id)
+        bg.main(p2p_conn, my_id, conn)
     else:
         print('Error: No p2p connection')
 
 def handle_commands(conn):
     global player
     global p2p_conn
+    global game_thread
 
     while True:
         command = input("~ Enter command (list/request/chat/check/disconnect): ")
@@ -244,8 +290,10 @@ def handle_commands(conn):
 
 
         elif command.startswith('check'):
-            player_score = command.split()[1]
-            send_to_server(conn, cmd.CHECK + ' ' +  str(player_score))
+            p1 = bg.game.stats[0][1]
+            p2 = bg.game.stats[1][1]
+            send_to_p2p(p2p_conn,cmd.CHECK)
+            send_to_server(conn, cmd.CHECK + ' ' +  str(p1) + ' ' + str(p2))
 
         elif command == 'disconnect':
             send_to_server(conn, cmd.DISCONNECT)

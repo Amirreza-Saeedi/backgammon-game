@@ -7,6 +7,7 @@ from tkinter import font, CENTER, messagebox
 from typing import List
 import sys
 import commands as cmd
+from client import send_to_server
 
 # 0 = player 1; 1 = player 2 / PC
 turn = 0
@@ -21,8 +22,10 @@ global label_mini_list
 global roll_button
 
 # XXX <
+main_frame = None
 conn = None
 my_id = None
+server_conn = None
 # XXX >
 
 class Game:
@@ -1086,15 +1089,24 @@ def who_won(player):
         return 0
 
 
+def get_roll_dice_from_server():
+    send_to_server(server_conn, cmd.ROLL)
 
-def roll_dice(main_frame, player):
-    global my_id, game  # XXX
-    global image, turn
+
+
+
+
+
+
+
+
+
+def roll_dice(zar1,zar2):
+    global my_id  # XXX
+    global image, turn ,main_frame,game
     if turn == my_id: # XXX
         time.sleep(0.5)
         global dice
-        zar1 = random.randrange(1, 7)
-        zar2 = random.randrange(1, 7)
         if zar1 == zar2:
             dice.append(zar1)
             dice.append(zar1)
@@ -1126,8 +1138,8 @@ def roll_dice(main_frame, player):
             dice_image[1].place(x=830, y=380)
 
         roll_button.config(state="disabled")
-        if player.stats[turn][0] > 0:
-            player.revive(turn)
+        if game.stats[turn][0] > 0:
+            game.revive(turn)
             if len(dice) == 0:
 
                 if turn == 0:
@@ -1141,7 +1153,7 @@ def roll_dice(main_frame, player):
                     # label_mini_list[1].config(fg="white")
                     # label_mini_list[0].config(fg="#80ff80")
 
-        if not player.exist_move(turn):
+        if not game.exist_move(turn):
             roll_button.config(state="normal")
 
     else: # XXX
@@ -1190,6 +1202,11 @@ def show_winner(window, id_player, player):
     label_winner = tk.Label(canvas, text=text, fg="#000000", bg=color_codes[color], font=text_font)
     canvas.create_window(300, 200, window=label_winner)
 
+    #TODO
+    time.sleep(10)
+    window.close()
+    exit(0)
+
     # window.mainloop
 
 
@@ -1203,6 +1220,7 @@ def player_gui_init(window):
     :param window: the window in which we see and play the game, used for displaying widgets
     :return: None
     """
+    global main_frame
     main_frame = tk.Frame(window, width=1200, height=800)
     main_frame.pack(side="top", expand=False, fill="both")
 
@@ -1216,9 +1234,8 @@ def player_gui_init(window):
     dice_image = []
     text_font = font.Font(size=14)
     roll_button = tk.Button(main_frame, text="Roll", font=text_font, bg='#4e555f', fg='white', border=2,
-                            command=lambda: roll_dice(main_frame, game))
+                            command=lambda: get_roll_dice_from_server())
     roll_button.place(x=360, y=380)
-
 
 
 def main_menu(window):
@@ -1267,11 +1284,12 @@ class NoDevSupport:
         pass
 
 
-def main(p2p_conn, id):
+def main(p2p_conn1, id , server_conn1):
     # XXX <
-    global conn, my_id, game
+    global conn, my_id, game,server_conn
     my_id = id
-    conn = p2p_conn
+    conn = p2p_conn1
+    server_conn = server_conn1
     # XXX >
     sys.stderr = NoDevSupport()
     window = create_window()
