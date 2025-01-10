@@ -25,7 +25,7 @@ KEYS[1] = b'abcdabcdabcdabcd'
 KEYS[2] = b'!@#$!@#$!@#$!@#$'
 
 #intiger for check is player win or not #TODO
-PlayerScore = 0
+player_score = 0
 
 
 def start_game():
@@ -212,8 +212,9 @@ def handle_commands(conn):
                 print(f'Error in request {e}')
 
 
-        elif command == 'check':
-            send_to_server(conn, cmd.CHECK + ' ' +  str(PlayerScore))
+        elif command.startswith('check'):
+            player_score = command.split()[1]
+            send_to_server(conn, cmd.CHECK + ' ' +  str(player_score))
 
         elif command == 'disconnect':
             send_to_server(conn, cmd.DISCONNECT)
