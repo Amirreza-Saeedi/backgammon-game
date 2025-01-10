@@ -24,18 +24,18 @@ def tostr_players():
 def handle_player(conn, addr):
     global players
     player_name = None
+    ip, port = None, None
 
     ### functions
     def handle_request():
         _, target_name, ip, port = data.split()
-        # print('-----DATA:', data)
         
         # find target player
         with lock:
             target_player = next((p for p in players if p[0] == target_name), None)
-            # print('--------FOUND')
 
         if target_player:
+            print('- Pleyer found.')
             # conn.sendall(f"REQUEST_SENT {target_name}".encode())
 
             time.sleep(3)  # TODO let connection be created
@@ -52,6 +52,15 @@ def handle_player(conn, addr):
             else:
                 conn.sendall(f"{cmd.ACCEPT} NO {target_player[1]}".encode())
 
+        else:  # TODO needs to be handled 
+            print('- Player not found.')
+
+    def print_client():
+        print(f'C({player_name}:{port}): ' + data)
+
+    def send_to_client(msg: str):
+        conn.sendall(msg.strip().encode())
+
     ### main
     try:
         # Step 1: Add player to the list and share the list
@@ -61,28 +70,42 @@ def handle_player(conn, addr):
             connections[addr] = conn
             players.append((player_name, addr))
         
-        print(f"{player_name} connected from {addr}")
+        data = f"connected from {addr}"
+        print_client()
 
         ### listen
         while True:
             # Step 2: Receive player requests
-            data = conn.recv(1024).decode()
+            data = str(conn.recv(1024).decode())
 
             if data.startswith(cmd.REQUEST):
                 print('\tREQUEST')
+                print_client()
                 handle_request()
 
             elif data.startswith(cmd.CHECK):  # TODO
                 print('\tCHECK')
+                print_client()
                 result = random.choice([True, False])
                 conn.sendall(f"WIN_STATUS {result}".encode())
 
             elif data == cmd.DISCONNECT:
                 print('\tDISCONNECT')
-                print(f"{player_name} disconnected.")
+                print_client()
+                print(f"- {player_name} disconnected.")
 
             elif data == cmd.LIST:
-                conn.sendall((cmd.LIST + ' ' + tostr_players()).encode())
+                print('\tLIST')
+                print_client()
+                send_to_client(cmd.LIST + ' ' + tostr_players())
+
+            elif data.startswith(cmd.ROLL):
+                print('\tROLL')
+                print_client()
+                d1 = random.randint(1, 6)
+                d2 = random.randint(1, 6)
+                send_to_client(cmd.ROLL + ' ' + str(d1) + ' ' + str(d2))
+
                 
 
     except Exception as e:

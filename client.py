@@ -90,15 +90,16 @@ def listen_to_server(conn):  # TODO should handle more tasks
 
             elif msg.startswith(cmd.ACCEPT):
                 print('\n\tACCEPT')
-                print(msg)
+                print_server()
 
             # cmd d1 d2
             elif msg.startswith(cmd.ROLL):
                 print('\n\tROLL')
-                print()
+                print_server()
                 _, d1, d2 = msg.split()
                 d1 = int(d1)
                 d2 = int(d2)
+                # TODO set dices in game
 
 
         except Exception as e:
