@@ -22,6 +22,7 @@ global label_mini_list
 global roll_button
 
 # XXX <
+to_be_destroyed = []
 main_frame = None
 conn = None
 my_id = None
@@ -1090,10 +1091,11 @@ def who_won(player):
 
 
 def get_roll_dice_from_server():
-    send_to_server(server_conn, cmd.ROLL)
-
-
-
+    global my_id
+    if turn == my_id:
+        send_to_server(server_conn, cmd.ROLL)
+    else: # XXX
+        messagebox.showerror("Backgammon!!", "Not your turn")
 
 
 
@@ -1104,60 +1106,58 @@ def get_roll_dice_from_server():
 def roll_dice(zar1,zar2):
     global my_id  # XXX
     global image, turn ,main_frame,game
-    if turn == my_id: # XXX
-        time.sleep(0.5)
-        global dice
-        if zar1 == zar2:
-            dice.append(zar1)
-            dice.append(zar1)
-            dice.append(zar1)
-            dice.append(zar1)
-        else:
-            dice.append(zar1)
-            dice.append(zar2)
 
-        img1 = tk.PhotoImage(file="assets/dice1.png")
-        img2 = tk.PhotoImage(file="assets/dice2.png")
-        img3 = tk.PhotoImage(file="assets/dice3.png")
-        img4 = tk.PhotoImage(file="assets/dice4.png")
-        img5 = tk.PhotoImage(file="assets/dice5.png")
-        img6 = tk.PhotoImage(file="assets/dice6.png")
-        image = [img1, img2, img3, img4, img5, img6]
+    # time.sleep(0.5)
+    global dice
+    if zar1 == zar2:
+        dice.append(zar1)
+        dice.append(zar1)
+        dice.append(zar1)
+        dice.append(zar1)
+    else:
+        dice.append(zar1)
+        dice.append(zar2)
 
-        if len(dice_image) <= 0:
-            dice_image.append(tk.Label(main_frame, image=image[zar1 - 1]))
-            dice_image[0].place(x=780, y=380)
+    img1 = tk.PhotoImage(file="assets/dice1.png")
+    img2 = tk.PhotoImage(file="assets/dice2.png")
+    img3 = tk.PhotoImage(file="assets/dice3.png")
+    img4 = tk.PhotoImage(file="assets/dice4.png")
+    img5 = tk.PhotoImage(file="assets/dice5.png")
+    img6 = tk.PhotoImage(file="assets/dice6.png")
+    image = [img1, img2, img3, img4, img5, img6]
 
-            dice_image.append(tk.Label(main_frame, image=image[zar2 - 1]))
-            dice_image[1].place(x=830, y=380)
-        else:
-            dice_image[0].configure(image=image[zar1 - 1])
-            dice_image[0].place(x=780, y=380)
+    if len(dice_image) <= 0:
+        dice_image.append(tk.Label(main_frame, image=image[zar1 - 1]))
+        dice_image[0].place(x=780, y=380)
 
-            dice_image[1].configure(image=image[zar2 - 1])
-            dice_image[1].place(x=830, y=380)
+        dice_image.append(tk.Label(main_frame, image=image[zar2 - 1]))
+        dice_image[1].place(x=830, y=380)
+    else:
+        dice_image[0].configure(image=image[zar1 - 1])
+        dice_image[0].place(x=780, y=380)
 
-        roll_button.config(state="disabled")
-        if game.stats[turn][0] > 0:
-            game.revive(turn)
-            if len(dice) == 0:
+        dice_image[1].configure(image=image[zar2 - 1])
+        dice_image[1].place(x=830, y=380)
 
-                if turn == 0:
-                    # turn = 1
-                    game.set_turn(1)
-                    # label_mini_list[0].config(fg="white")
-                    # label_mini_list[1].config(fg="#80ff80")
-                else:
-                    # turn = 0
-                    game.set_turn(0)
-                    # label_mini_list[1].config(fg="white")
-                    # label_mini_list[0].config(fg="#80ff80")
+    roll_button.config(state="disabled")
+    if game.stats[turn][0] > 0:
+        game.revive(turn)
+        if len(dice) == 0:
 
-        if not game.exist_move(turn):
-            roll_button.config(state="normal")
+            if turn == 0:
+                # turn = 1
+                game.set_turn(1)
+                # label_mini_list[0].config(fg="white")
+                # label_mini_list[1].config(fg="#80ff80")
+            else:
+                # turn = 0
+                game.set_turn(0)
+                # label_mini_list[1].config(fg="white")
+                # label_mini_list[0].config(fg="#80ff80")
 
-    else: # XXX
-        messagebox.showerror("Backgammon!!", "Not your turn")
+    if not game.exist_move(turn):
+        roll_button.config(state="normal")
+
 
 
 def show_winner(window, id_player, player):
@@ -1203,8 +1203,21 @@ def show_winner(window, id_player, player):
     canvas.create_window(300, 200, window=label_winner)
 
     #TODO
-    time.sleep(10)
-    window.close()
+    time.sleep(5)
+    global to_be_destroyed
+    for w in to_be_destroyed:
+        try:    
+            w.destroy()
+        except Exception as e:
+            pass
+    to_be_destroyed = []
+    global main_frame
+    main_frame.destroy()
+    canvas.destroy()
+    global game
+    game.window.destroy()
+    game.main_frame.destroy()
+    window.destroy()
     exit(0)
 
     # window.mainloop
@@ -1223,7 +1236,7 @@ def player_gui_init(window):
     global main_frame
     main_frame = tk.Frame(window, width=1200, height=800)
     main_frame.pack(side="top", expand=False, fill="both")
-
+    
     global background, game, dice_image, roll_button
     background = tk.PhotoImage(file="assets/board2.png")
     label_background = tk.Label(main_frame, image=background)
@@ -1256,7 +1269,7 @@ def create_window():
     """
 
     window = tk.Tk()
-    window.title(f'PLAYER {my_id}')
+    window.title(f'PLAYER {my_id + 1}')
 
     window.configure(width=1200, height=800)
     window.resizable(False, False)
@@ -1265,6 +1278,10 @@ def create_window():
     window.iconphoto(False, icon)
 
     window.eval('tk::PlaceWindow . center')
+    # XXX <
+    global to_be_destroyed
+    to_be_destroyed.append(window)
+    # XXX >
     return window
 
 
@@ -1294,8 +1311,6 @@ def main(p2p_conn1, id , server_conn1):
     sys.stderr = NoDevSupport()
     window = create_window()
     main_menu(window)
-    game.update_board(0, 12, 10) # XXX
-
     window.mainloop()
 
 

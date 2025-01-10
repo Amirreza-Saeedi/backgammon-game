@@ -88,6 +88,10 @@ def handle_player(conn, addr):
                 print_client()
                 p1 = data.split()[1]
                 p2 = data.split()[2]
+
+                # TODO test
+                p1 = '15'
+
                 if p1 == "15":
                     send_to_client(cmd.CHECK + ' ' + '0')
                 elif p2 == "15":

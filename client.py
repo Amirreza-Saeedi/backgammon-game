@@ -120,8 +120,8 @@ def listen_to_server(conn):  # TODO should handle more tasks
             #cmd true/False
             elif msg.startswith(cmd.CHECK):
                 print('\n\tCHECK')
-                print()
-                result = msg.split()[1]
+                print_server()
+                result = int(msg.split()[1])
                 if result == player.id:
                     print("You Won.")
                     bg.show_winner(bg.game.window, player.id + 1, bg.game)
