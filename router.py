@@ -21,16 +21,16 @@ class Router:
         self.next_port = next_port
 
     # server -> client
-    def listen_to_server(self, s_conn, c_conn):    
+    def listen_to_server(self, s_conn, c_conn, key):    
         while True:
             msg = s_conn.recv(1024).decode()
             print('\tSERVER')
             print('msg:', msg)
-            en_msg = encrypt_message(self.key, msg)
+            en_msg = encrypt_message(key, msg)
             c_conn.sendall(en_msg.encode())
 
     # client -> server
-    def listen_to_client(self, c_conn, s_conn):
+    def listen_to_client(self, c_conn, s_conn, key):
 
         '''
             first recv keys in 3 msg
@@ -39,31 +39,36 @@ class Router:
             2- key2 
             3- key3
         '''
-        # set key
-        msg = str(c_conn.recv(1024).decode())
-        print('key:', msg)
-        self.key = msg.encode()  # TODO encode or not?
+        # # set key
+        # msg = str(c_conn.recv(1024).decode())
+        # print('key:', msg)
+        # self.key = msg.encode()  # TODO encode or not?
 
         # main loop
         while True:
             msg = c_conn.recv(1024).decode()
             print('\tCLIENT')
             print('msg:', msg)
-            de_msg = decrypt_message(self.key, msg)
+            de_msg = decrypt_message(key, msg)
             s_conn.sendall(de_msg.encode())
 
     def handle_client(self, c_conn):
 
+        # set key
+        msg = str(c_conn.recv(1024).decode())
+        print('key:', msg)
+        key = msg.encode()  # TODO encode or not?
+
         # conn to server
-        s_conn = self.connect_to_server(c_conn=c_conn)
+        s_conn = self.connect_to_server(c_conn=c_conn, key=key)
 
         # listen to client
-        self.listen_to_client(c_conn=c_conn, s_conn=s_conn)
+        self.listen_to_client(c_conn=c_conn, s_conn=s_conn, key=key)
 
-    def connect_to_server(self, c_conn):
+    def connect_to_server(self, c_conn, key):
         s_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s_conn.connect((IP, self.next_port))
-        threading.Thread(target=self.listen_to_server, daemon=True, args=(s_conn, c_conn)).start()
+        threading.Thread(target=self.listen_to_server, daemon=True, args=(s_conn, c_conn, key)).start()
         return s_conn
 
     def accept_client(self):

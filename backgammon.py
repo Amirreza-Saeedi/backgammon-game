@@ -905,6 +905,8 @@ class Game:
         self.board[player_id][column][0][-1].destroy()
         self.board[player_id][column][0].pop()
         self.stats[player_id][1] += 1
+        print('----REMOVED')
+        print(f'stats[{player_id}][1] = {self.stats[player_id][1]}')
 
         verify_taken_out = 0
         for index in range(0, len(dice)):
@@ -949,6 +951,8 @@ class Game:
                 self.set_turn(0)
                 # label_mini_list[1].config(fg="white")
                 # label_mini_list[0].config(fg="#80ff80")
+
+        send_to_p2p(cmd.REMOVE)
 
     def revive(self, player_id):
         """
