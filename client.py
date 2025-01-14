@@ -26,15 +26,15 @@ op_addr = None
 p2p_conn = None
 player = None
 
+def random_string():
+    text='1234123412341234abcdabcdabcdabcd!@#$!@#$!@#$!@#$'
+    mmd=''
+    for i in range(16):
+        mmd+=random.choice(text)
+    return mmd.encode()
 
 # generate keys
-words = '1234567890abcdefghijklmnopqrstuvwxyz!@#$%^&*-+=_'
-def generate_str(l):
-    s = ''
-    for _ in range(16):
-        s += random.choice(words)
-    return s.encode()
-KEYS = [generate_str(words) for _ in range(3)]
+KEYS = [random_string() for _ in range(3)]
 
 
 def sweet_revenge(text):
@@ -180,7 +180,7 @@ def listen_to_p2p():
                 print('\n\tCHAT')
                 print('<<<', msg)
 
-            if msg == cmd.REMOVE:
+            elif msg == cmd.REMOVE:
                 print('\n\tREMOVE')
                 bg.game[(player.id + 1) % 2][1] += 1
 
@@ -217,6 +217,7 @@ def listen_to_p2p():
                 else:
                     p2p_conn.close()
                     p2p_conn = None
+                    break
 
             elif msg.startswith(cmd.REMATCH):
                 print('\n\tREMATCH')

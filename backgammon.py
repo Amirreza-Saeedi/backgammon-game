@@ -2,6 +2,7 @@ import random
 import time
 import webbrowser
 from mttkinter import mtTkinter as tk
+# import tkinter as tk
 from tkinter import font, CENTER, messagebox
 from typing import List
 import sys
@@ -905,8 +906,6 @@ class Game:
         self.board[player_id][column][0][-1].destroy()
         self.board[player_id][column][0].pop()
         self.stats[player_id][1] += 1
-        print('----REMOVED')
-        print(f'stats[{player_id}][1] = {self.stats[player_id][1]}')
 
         verify_taken_out = 0
         for index in range(0, len(dice)):
@@ -951,8 +950,6 @@ class Game:
                 self.set_turn(0)
                 # label_mini_list[1].config(fg="white")
                 # label_mini_list[0].config(fg="#80ff80")
-
-        send_to_p2p(cmd.REMOVE)
 
     def revive(self, player_id):
         """
@@ -1164,12 +1161,26 @@ def roll_dice(zar1,zar2):
 
 
 def show_winner(window, id_player, player):
-    roll_button.config(state="disabled")
-    if id_player == 1:
-        text = player.name[0]
-    else:
-        text = player.name[1]
+    """
+    This method shows the winner to both players. If somebody won, this method is called.
+    When called, it creates a small canvas centered on top of the window with all the widgets added lastly,
+    black background and random colored circles to catch the eye of the players that something awesome happened.
+    Finally on top of the circles is shown which player did win.
 
+    :param window: the window in which we see and play the game, used for displaying widgets
+    :param id_player: player id represented as list index (0 - player 1; 1 - player 2 or PC)
+    :param player: object of type Game that holds the game information
+    :type player: Game
+    :return: None
+    """
+    roll_button.config(state="disabled")
+    time.sleep(1)
+    # if id_player == 1:
+    #     text = player.name[0]
+    # else:
+    #     text = player.name[1]
+
+    text = "player"+str(id_player)
     canvas = tk.Canvas(window, width=600, height=400, bg="#000000")
     canvas.place(x=600, y=400, anchor=CENTER)
 
@@ -1193,33 +1204,22 @@ def show_winner(window, id_player, player):
     canvas.create_window(300, 200, window=label_winner)
 
     #TODO
-      # Schedule cleanup after 5 seconds
-    # window.after(5000, lambda: cleanup(window))
-
-def cleanup(window):
-    """Clean up all windows and exit the application."""
-    # exit()
-    global to_be_destroyed, main_frame, game
-    
-    # Destroy specific widgets
+    time.sleep(5)
+    global to_be_destroyed
     for w in to_be_destroyed:
-        try:
+        try:    
             w.destroy()
-        except Exception:
+        except Exception as e:
             pass
     to_be_destroyed = []
-
-    # Destroy main frame and game-related widgets
-    try:
-        if main_frame:
-            main_frame.destroy()
-        if game and hasattr(game, 'window'):
-            game.window.destroy()
-        if game and hasattr(game, 'main_frame'):
-            game.main_frame.destroy()
-    except Exception:
-        pass
-    
+    global main_frame
+    main_frame.destroy()
+    canvas.destroy()
+    global game
+    game.window.destroy()
+    game.main_frame.destroy()
+    window.destroy()
+    exit(0)
 
     # window.mainloop
 
@@ -1282,8 +1282,6 @@ def create_window():
     # XXX <
     global to_be_destroyed
     to_be_destroyed.append(window)
-    # Bind the close event to the custom function
-    window.protocol("WM_DELETE_WINDOW", on_close_game)
     # XXX >
     return window
 
@@ -1302,37 +1300,6 @@ class NoDevSupport:
         :return: None
         """
         pass
-
-def reset_globals():
-    global game, main_frame, conn, server_conn, dice, label_mini_list, roll_button
-    game = None
-    main_frame = None
-    conn = None
-    server_conn = None
-    dice = []
-    label_mini_list = []
-    roll_button = None
-
-
-def on_close_game():
-    """
-    Handle the game window close event.
-    Ensures cleanup and stops any background processes or threads.
-    """
-    if messagebox.askokcancel("Quit Game", "Are you sure you want to quit the game?"):
-        print("Performing cleanup...")
-        
-        # Perform game-specific cleanup
-        # cleanup()  # Call your existing cleanup function
-        
-        # Destroy the Tkinter window
-        if game and hasattr(game, 'window'):
-            game.window.destroy()
-
-        reset_globals()
-
-        # Exit the program
-        sys.exit(0)  # Optional: Exit the entire program
 
 
 def main(p2p_conn1, id , server_conn1):
