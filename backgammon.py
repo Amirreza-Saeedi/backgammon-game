@@ -2,7 +2,6 @@ import random
 import time
 import webbrowser
 from mttkinter import mtTkinter as tk
-# import tkinter as tk
 from tkinter import font, CENTER, messagebox
 from typing import List
 import sys
@@ -1191,7 +1190,7 @@ def show_winner(window, id_player, player):
 
     #TODO
       # Schedule cleanup after 5 seconds
-    window.after(5000, lambda: cleanup(window))
+    # window.after(5000, lambda: cleanup(window))
 
 def cleanup(window):
     """Clean up all windows and exit the application."""
@@ -1216,6 +1215,7 @@ def cleanup(window):
             game.main_frame.destroy()
     except Exception:
         pass
+    
 
     # window.mainloop
 
@@ -1278,6 +1278,8 @@ def create_window():
     # XXX <
     global to_be_destroyed
     to_be_destroyed.append(window)
+    # Bind the close event to the custom function
+    window.protocol("WM_DELETE_WINDOW", on_close_game)
     # XXX >
     return window
 
@@ -1296,6 +1298,37 @@ class NoDevSupport:
         :return: None
         """
         pass
+
+def reset_globals():
+    global game, main_frame, conn, server_conn, dice, label_mini_list, roll_button
+    game = None
+    main_frame = None
+    conn = None
+    server_conn = None
+    dice = []
+    label_mini_list = []
+    roll_button = None
+
+
+def on_close_game():
+    """
+    Handle the game window close event.
+    Ensures cleanup and stops any background processes or threads.
+    """
+    if messagebox.askokcancel("Quit Game", "Are you sure you want to quit the game?"):
+        print("Performing cleanup...")
+        
+        # Perform game-specific cleanup
+        # cleanup()  # Call your existing cleanup function
+        
+        # Destroy the Tkinter window
+        if game and hasattr(game, 'window'):
+            game.window.destroy()
+
+        reset_globals()
+
+        # Exit the program
+        sys.exit(0)  # Optional: Exit the entire program
 
 
 def main(p2p_conn1, id , server_conn1):

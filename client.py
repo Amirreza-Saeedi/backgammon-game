@@ -25,6 +25,7 @@ op_addr = None
 p2p_conn = None
 player = None
 
+
 # generate keys
 KEYS = [get_random_bytes(16) for _ in range(3)]
 KEYS[0] = b'1234123412341234'
@@ -129,25 +130,21 @@ def listen_to_server(conn):  # TODO should handle more tasks
                 if result == player.id:
                     print("You Won.")
                     bg.show_winner(bg.game.window, player.id + 1, bg.game)
+                    game_thread.join()
 
                 elif result == (player.id +1) % 2:
                     print("You Dicked also op won.")
                     thread = None
-                    if player.id ==0:
-                        thread = threading.Thread(target=lambda: bg.show_winner(bg.game.window, 1, bg.game))
+                    if player.id == 0:
+                        bg.show_winner(bg.game.window, 1, bg.game)
                     else:
-                        thread = threading.Thread(target=lambda: bg.show_winner(bg.game.window, 2, bg.game))
-                    # time.sleep(5)
-                    thread.start()
-                    thread.join()
-
-                    # Create the main Tkinter window
-                    # root = Tk()
-                    # root.withdraw()  # Hide the root window (optional if you only want the dialog)
+                        bg.show_winner(bg.game.window, 2, bg.game)
+                    
+                    game_thread.join()
+                    print('----JOINED')
 
                     # Display the Yes/No dialog
                     respond = sweet_revenge("Do you want to revenge and rematch?")
-                    # respond = messagebox.askyesno("revenge time", '?????')
 
                     print('respond', respond)
                     if respond:
@@ -292,7 +289,8 @@ def handle_commands(conn):
                 p2p_thread = threading.Thread(target=listen_to_p2p, daemon=True)
                 p2p_thread.start()
 
-                threading.Thread(target=run_game, daemon=True, args=[0,]).start()
+                game_thread = threading.Thread(target=run_game, daemon=True, args=[0,])
+                game_thread.start()
                 player.id = 0
 
             except KeyboardInterrupt:  # TODO tmp for accept()
