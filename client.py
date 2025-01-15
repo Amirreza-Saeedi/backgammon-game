@@ -3,6 +3,7 @@ import threading
 import time
 from math import trunc
 
+import string
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 import base64
@@ -28,14 +29,22 @@ player = None
 
 
 # generate keys
-words = '1234567890abcdefghijklmnopqrstuvwxyz!@#$%^&*-+=_'
-def generate_str(l):
-    s = ''
-    for _ in range(16):
-        s += random.choice(words)
-    return s.encode()
-KEYS = [generate_str(words) for _ in range(3)]
+KEYS = [get_random_bytes(16) for _ in range(3)]
+# KEYS[0] = b'1234123412341234'
+# KEYS[1] = b'abcdabcdabcdabcd'
+# KEYS[2] = b'!@#$!@#$!@#$!@#$'
 
+
+
+def create_random_keys():
+    # Define the character pool: lowercase letters and digits 1-9
+    char_pool = string.ascii_lowercase + '123456789'
+    
+    # Generate a list of 3 random strings, each 16 characters long
+    keys = [(''.join(random.choices(char_pool, k=16))).encode() for _ in range(3)]
+    return keys
+
+KEYS = create_random_keys()
 
 def sweet_revenge(text):
     # response = messagebox.askyesno("revenge time", text)
@@ -54,6 +63,7 @@ def send_to_server(conn, msg: str):
     for key in reversed(KEYS):
         msg = encrypt_message(key, msg.strip())
     # send
+    print("+++ ",KEYS)
     conn.sendall(msg.encode())
 
 def send_to_p2p(conn, msg: str):
@@ -215,12 +225,18 @@ def listen_to_p2p():
                     send_to_p2p(p2p_conn, cmd.REMATCH)
                     threading.Thread(target=run_game, daemon=True,args=(player.id,)).start()
                 else:
+                    send_to_p2p(p2p_conn,cmd.BREAK)
                     p2p_conn.close()
                     p2p_conn = None
+                    break
 
             elif msg.startswith(cmd.REMATCH):
                 print('\n\tREMATCH')
                 threading.Thread(target=run_game, daemon=True, args=(player.id,)).start()
+            
+            elif msg.startswith(cmd.BREAK):
+                print("Break excuted")
+                break
 
             else:
                 print('Error: Unknown p2p command.')
@@ -235,19 +251,27 @@ def connect_to_server():
     conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     conn.connect((HOST, PORT))
     print('Connected to server.')
+    # print("---key1= ", KEYS[0])
+    # conn.sendall(KEYS[0])
+    # print('Key 1 set.')
 
-    conn.sendall(KEYS[0])
-    print('Key 1 set.')
+    # print("---key2= ", KEYS[1])
+    # # en_key2 = encrypt_message(KEYS[0], KEYS[1].decode())
+    # conn.sendall(KEYS[1])
+    # print('Key 2 set.')
 
-    en_key2 = encrypt_message(KEYS[0], KEYS[1].decode())
-    conn.sendall(en_key2.encode())
-    print('Key 2 set.')
-
-    en_key3 = encrypt_message(KEYS[1], KEYS[2].decode())
-    en_key3 = encrypt_message(KEYS[0], en_key3)
-    conn.sendall(en_key3.encode())
-    print('Key 3 set.')
-
+    # print("---key3= ", KEYS[2])
+    # # en_key3 = encrypt_message(KEYS[1], KEYS[2].decode())
+    # # en_key3 = encrypt_message(KEYS[0], en_key3)
+    # conn.sendall(KEYS[2])
+    # print('Key 3 set.')
+    # for i, key in enumerate(KEYS):
+    #     print(f"---key{i + 1}= {key}")
+    #     conn.sendall(key)  # Send raw bytes
+    #     print(f"Key {i + 1} set.")
+    #     time.sleep(3)
+    msg = KEYS[0].decode()+' '+KEYS[1].decode()+' '+KEYS[2].decode()
+    conn.sendall(msg.encode())
     # server thread
     threading.Thread(target=listen_to_server, daemon=True, args=[conn]).start()
 

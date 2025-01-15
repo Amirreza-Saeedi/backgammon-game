@@ -49,18 +49,31 @@ class Router:
             msg = c_conn.recv(1024).decode()
             print('\tCLIENT')
             print('msg:', msg)
+            print("*** ",key)
             de_msg = decrypt_message(key, msg)
             s_conn.sendall(de_msg.encode())
 
     def handle_client(self, c_conn):
 
         # set key
-        msg = str(c_conn.recv(1024).decode())
+        msg = c_conn.recv(1024).decode()  # Receive raw bytes
+        keys = msg.split(' ')
         print('key:', msg)
-        key = msg.encode()  # TODO encode or not?
-
-        # conn to server
-        s_conn = self.connect_to_server(c_conn=c_conn, key=key)
+        # key = msg.encode()  # TODO encode or not?
+        if self.port ==R1_PORT:
+            key=keys[0].encode()
+            s_conn = self.connect_to_server(c_conn=c_conn, key=key)
+            s_conn.sendall(msg.encode())
+            print('----',key)
+        elif self.port ==R2_PORT:
+            key = keys[1].encode()
+            s_conn = self.connect_to_server(c_conn=c_conn, key=key)
+            s_conn.sendall(msg.encode())
+            print('----',key)
+        elif self.port == R3_PORT:
+            key=keys[2].encode()
+            s_conn = self.connect_to_server(c_conn=c_conn, key=key)
+            print('----',key)
 
         # listen to client
         self.listen_to_client(c_conn=c_conn, s_conn=s_conn, key=key)

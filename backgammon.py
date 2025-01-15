@@ -1100,12 +1100,6 @@ def get_roll_dice_from_server():
     else: # XXX
         messagebox.showerror("Backgammon!!", "Not your turn")
 
-
-
-
-
-
-
 def roll_dice(zar1,zar2):
     global my_id  # XXX
     global image, turn ,main_frame,game
