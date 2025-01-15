@@ -1153,10 +1153,9 @@ def roll_dice(zar1, zar2):
 
 def show_winner(window, id_player, player):
     roll_button.config(state="disabled")
-    if id_player == 1:
-        text = player.name[0]
-    else:
-        text = player.name[1]
+    
+
+    text = f'Player {id_player}'
 
     canvas = tk.Canvas(window, width=600, height=400, bg="#000000")
     canvas.place(x=600, y=400, anchor=CENTER)
