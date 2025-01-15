@@ -14,11 +14,13 @@ players = []  # [name, (ip, port)]
 connections = {}  # sockets
 lock = threading.Lock()
 
+
 def tostr_players():
     s = 'Players:\n'
     for i, p in enumerate(players):
         s += f'\t{i + 1}- {p[0]}: {p[1]}\n'
     return s
+
 
 # Server-side functions
 def handle_player(conn, addr):
@@ -28,31 +30,26 @@ def handle_player(conn, addr):
 
     ### functions
     def handle_request():
-        _, target_name, ip, port = data.split()
-        
+        _, target_port, ip, port = data.split()
+        target_port = int(target_port)
+
         # find target player
+        print('playesr')
+        for p in players:
+            print(p[1][1])
+
         with lock:
-            target_player = next((p for p in players if p[0] == target_name), None)
+            target_player = next((p for p in players if p[1][1] == target_port), None)
 
         if target_player:
             print('- Pleyer found.')
-            # conn.sendall(f"REQUEST_SENT {target_name}".encode())
 
-            time.sleep(3)  # TODO let connection be created
+            time.sleep(3)  # let connection be created
 
             target_conn = connections[target_player[1]]
             target_conn.sendall(f"{cmd.REQUEST} {player_name} {ip} {port}".encode())
-            
-            response = target_conn.recv(1024).decode()
-            response = cmd.ACCEPT  # TODO
 
-            if response == cmd.ACCEPT:
-                conn.sendall(f"{cmd.ACCEPT} YES {target_player[1]}".encode())
-                # target_conn.sendall(f"CONNECTED {addr}".encode())
-            else:
-                conn.sendall(f"{cmd.ACCEPT} NO {target_player[1]}".encode())
-
-        else:  # TODO needs to be handled 
+        else:
             print('- Player not found.')
 
     def print_client():
@@ -69,7 +66,7 @@ def handle_player(conn, addr):
         with lock:
             connections[addr] = conn
             players.append((player_name, addr))
-        
+
         data = f"connected from {addr}"
         print_client()
 
@@ -83,7 +80,7 @@ def handle_player(conn, addr):
                 print_client()
                 handle_request()
 
-            elif data.startswith(cmd.CHECK):  # TODO
+            elif data.startswith(cmd.CHECK):
                 print('\tCHECK')
                 print_client()
                 p1 = data.split()[1]
@@ -101,6 +98,9 @@ def handle_player(conn, addr):
 
             elif data == cmd.DISCONNECT:
                 print('\tDISCONNECT')
+                connections.pop(addr)
+                idx = players.index((player_name, addr))
+                players.pop(idx)
                 print_client()
                 print(f"- {player_name} disconnected.")
 
@@ -116,7 +116,7 @@ def handle_player(conn, addr):
                 d2 = random.randint(1, 6)
                 send_to_client(cmd.ROLL + ' ' + str(d1) + ' ' + str(d2))
 
-                
+
 
     except Exception as e:
         print(f"Error handling player {addr}: {e}")
@@ -144,8 +144,8 @@ def start_server():
     finally:
         server_socket.close()
 
+
 if __name__ == '__main__':
     os.system('cls')
     print('\tSERVER APP')
     start_server()
-    

@@ -773,7 +773,7 @@ class Game:
                 turn = 0
                 label_mini_list[1].config(fg="white")
                 label_mini_list[0].config(fg="#80ff80")
-            
+
             roll_button.config(state="normal")
 
     def options(self, player_id, x, y):
@@ -863,7 +863,7 @@ class Game:
                     turn = 0
                     label_mini_list[1].config(fg="white")
                     label_mini_list[0].config(fg="#80ff80")
-                
+
                 roll_button.config(state="normal")
         else:
             dice = []
@@ -1002,13 +1002,6 @@ class Game:
                 choice = random.randrange(0, len(list_btn_option))
                 list_btn_option[choice].invoke()
 
-
-
-
-
-
-
-
     def move(self, player_id, x, y):
         """
         This method will call the methods needed for playing the actual turn, but before that it will run some
@@ -1044,16 +1037,6 @@ class Game:
 
         else:
             messagebox.showerror("Backgammon!!", "You must roll the dice first")
-
-
-
-
-
-
-
-
-
-
 
     def pc_move(self):
         """
@@ -1193,34 +1176,6 @@ class Game:
         label_mini_list[0].config(fg="#80ff80")
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # END CLASS
 
 
@@ -1239,16 +1194,6 @@ def who_won(player):
         return 2
     else:
         return 0
-
-
-
-
-
-
-
-
-
-
 
 
 def roll_dice(main_frame, player):
@@ -1560,6 +1505,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 def my_turn(cnd, game):
     global turn

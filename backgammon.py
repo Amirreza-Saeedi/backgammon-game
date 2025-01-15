@@ -2,7 +2,6 @@ import random
 import time
 import webbrowser
 from mttkinter import mtTkinter as tk
-# import tkinter as tk
 from tkinter import font, CENTER, messagebox
 from typing import List
 import sys
@@ -28,6 +27,8 @@ conn = None
 my_id = None
 server_conn = None
 KEYS = None
+
+
 # XXX >
 
 class Game:
@@ -640,8 +641,8 @@ class Game:
 
         return next_pos
 
-    def update_board(self, player_id, column_taken, column_pus):  
-        
+    def update_board(self, player_id, column_taken, column_pus):
+
         # XXX <
         global turn
         global conn, my_id
@@ -782,7 +783,7 @@ class Game:
                 self.set_turn(0)
                 # label_mini_list[1].config(fg="white")
                 # label_mini_list[0].config(fg="#80ff80")
-            
+
             roll_button.config(state="normal")
 
     def options(self, player_id, x, y):
@@ -871,7 +872,7 @@ class Game:
                     self.set_turn(0)
                     # label_mini_list[1].config(fg="white")
                     # label_mini_list[0].config(fg="#80ff80")
-                
+
                 roll_button.config(state="normal")
         else:
             dice = []
@@ -907,6 +908,8 @@ class Game:
         self.board[player_id][column][0][-1].destroy()
         self.board[player_id][column][0].pop()
         self.stats[player_id][1] += 1
+        print('----REMOVED')
+        print(f'stats[{player_id}][1] = {self.stats[player_id][1]}')
 
         verify_taken_out = 0
         for index in range(0, len(dice)):
@@ -951,6 +954,8 @@ class Game:
                 self.set_turn(0)
                 # label_mini_list[1].config(fg="white")
                 # label_mini_list[0].config(fg="#80ff80")
+
+        send_to_p2p(cmd.REMOVE)
 
     def revive(self, player_id):
         """
@@ -1008,7 +1013,6 @@ class Game:
                 choice = random.randrange(0, len(list_btn_option))
                 list_btn_option[choice].invoke()
 
-
     def move(self, player_id, x, y):
         """
         This method will call the methods needed for playing the actual turn, but before that it will run some
@@ -1049,7 +1053,7 @@ class Game:
             messagebox.showerror("Backgammon!!", "You must roll the dice first")
 
     # XXX
-    def set_turn(self, val: int, both:bool=True):
+    def set_turn(self, val: int, both: bool = True):
         '''
             set turn for players
             recolor names
@@ -1061,14 +1065,6 @@ class Game:
         label_mini_list[1].config(fg=c1)
         if both:
             send_to_p2p(cmd.TURN + ' ' + str(val))
-
-
-
-
-
-
-
-
 
 
 # END CLASS
@@ -1094,13 +1090,14 @@ def who_won(player):
 def get_roll_dice_from_server():
     global my_id
     if turn == my_id:
-        send_to_server(server_conn, cmd.ROLL,KEYS)
-    else: # XXX
+        send_to_server(server_conn, cmd.ROLL, KEYS)
+    else:  # XXX
         messagebox.showerror("Backgammon!!", "Not your turn")
 
-def roll_dice(zar1,zar2):
+
+def roll_dice(zar1, zar2):
     global my_id  # XXX
-    global image, turn ,main_frame,game
+    global image, turn, main_frame, game
 
     # time.sleep(0.5)
     global dice
@@ -1154,28 +1151,13 @@ def roll_dice(zar1,zar2):
         roll_button.config(state="normal")
 
 
-
 def show_winner(window, id_player, player):
-    """
-    This method shows the winner to both players. If somebody won, this method is called.
-    When called, it creates a small canvas centered on top of the window with all the widgets added lastly,
-    black background and random colored circles to catch the eye of the players that something awesome happened.
-    Finally on top of the circles is shown which player did win.
-
-    :param window: the window in which we see and play the game, used for displaying widgets
-    :param id_player: player id represented as list index (0 - player 1; 1 - player 2 or PC)
-    :param player: object of type Game that holds the game information
-    :type player: Game
-    :return: None
-    """
     roll_button.config(state="disabled")
-    time.sleep(1)
-    # if id_player == 1:
-    #     text = player.name[0]
-    # else:
-    #     text = player.name[1]
+    if id_player == 1:
+        text = player.name[0]
+    else:
+        text = player.name[1]
 
-    text = "player"+str(id_player)
     canvas = tk.Canvas(window, width=600, height=400, bg="#000000")
     canvas.place(x=600, y=400, anchor=CENTER)
 
@@ -1198,23 +1180,34 @@ def show_winner(window, id_player, player):
     label_winner = tk.Label(canvas, text=text, fg="#000000", bg=color_codes[color], font=text_font)
     canvas.create_window(300, 200, window=label_winner)
 
-    #TODO
-    time.sleep(5)
-    global to_be_destroyed
+    # TODO
+    # Schedule cleanup after 5 seconds
+    # window.after(5000, lambda: cleanup(window))
+
+
+def cleanup(window):
+    """Clean up all windows and exit the application."""
+    # exit()
+    global to_be_destroyed, main_frame, game
+
+    # Destroy specific widgets
     for w in to_be_destroyed:
-        try:    
+        try:
             w.destroy()
-        except Exception as e:
+        except Exception:
             pass
     to_be_destroyed = []
-    global main_frame
-    main_frame.destroy()
-    canvas.destroy()
-    global game
-    game.window.destroy()
-    game.main_frame.destroy()
-    window.destroy()
-    exit(0)
+
+    # Destroy main frame and game-related widgets
+    try:
+        if main_frame:
+            main_frame.destroy()
+        if game and hasattr(game, 'window'):
+            game.window.destroy()
+        if game and hasattr(game, 'main_frame'):
+            game.main_frame.destroy()
+    except Exception:
+        pass
 
     # window.mainloop
 
@@ -1232,7 +1225,7 @@ def player_gui_init(window):
     global main_frame
     main_frame = tk.Frame(window, width=1200, height=800)
     main_frame.pack(side="top", expand=False, fill="both")
-    
+
     global background, game, dice_image, roll_button
     background = tk.PhotoImage(file="assets/board2.png")
     label_background = tk.Label(main_frame, image=background)
@@ -1277,6 +1270,8 @@ def create_window():
     # XXX <
     global to_be_destroyed
     to_be_destroyed.append(window)
+    # Bind the close event to the custom function
+    window.protocol("WM_DELETE_WINDOW", on_close_game)
     # XXX >
     return window
 
@@ -1297,9 +1292,41 @@ class NoDevSupport:
         pass
 
 
-def main(p2p_conn1, id , server_conn1,KEYS1):
+def reset_globals():
+    global game, main_frame, conn, server_conn, dice, label_mini_list, roll_button
+    game = None
+    main_frame = None
+    conn = None
+    server_conn = None
+    dice = []
+    label_mini_list = []
+    roll_button = None
+
+
+def on_close_game():
+    """
+    Handle the game window close event.
+    Ensures cleanup and stops any background processes or threads.
+    """
+    if messagebox.askokcancel("Quit Game", "Are you sure you want to quit the game?"):
+        print("Performing cleanup...")
+
+        # Perform game-specific cleanup
+        # cleanup()  # Call your existing cleanup function
+
+        # Destroy the Tkinter window
+        if game and hasattr(game, 'window'):
+            game.window.destroy()
+
+        reset_globals()
+
+        # Exit the program
+        sys.exit(0)  # Optional: Exit the entire program
+
+
+def main(p2p_conn1, id, server_conn1, KEYS1):
     # XXX <
-    global conn, my_id, game,server_conn,KEYS
+    global conn, my_id, game, server_conn, KEYS
     my_id = id
     conn = p2p_conn1
     server_conn = server_conn1
@@ -1313,6 +1340,7 @@ def main(p2p_conn1, id , server_conn1,KEYS1):
 
 if __name__ == '__main__':
     main()
+
 
 # XXX my funcs
 def send_to_p2p(msg: str):

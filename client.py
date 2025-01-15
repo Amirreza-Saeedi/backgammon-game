@@ -15,6 +15,7 @@ import router as rt
 from player import Player
 import backgammon as bg
 import easygui
+import random
 
 HOST = '127.0.0.1'
 PORT = rt.R1_PORT
@@ -26,30 +27,26 @@ op_addr = None
 p2p_conn = None
 player = None
 
-def random_string():
-    text='1234123412341234abcdabcdabcdabcd!@#$!@#$!@#$!@#$'
-    mmd=''
-    for i in range(16):
-        mmd+=random.choice(text)
-    return mmd.encode()
-
 # generate keys
 KEYS = [get_random_bytes(16) for _ in range(3)]
+
+
 # KEYS[0] = b'1234123412341234'
 # KEYS[1] = b'abcdabcdabcdabcd'
 # KEYS[2] = b'!@#$!@#$!@#$!@#$'
 
 
-
 def create_random_keys():
     # Define the character pool: lowercase letters and digits 1-9
     char_pool = string.ascii_lowercase + '123456789'
-    
+
     # Generate a list of 3 random strings, each 16 characters long
     keys = [(''.join(random.choices(char_pool, k=16))).encode() for _ in range(3)]
     return keys
 
+
 KEYS = create_random_keys()
+
 
 def sweet_revenge(text):
     # response = messagebox.askyesno("revenge time", text)
@@ -57,10 +54,12 @@ def sweet_revenge(text):
 
     return response
 
+
 def start_game():
     pass
 
-def send_to_server(conn, msg: str,KEY):
+
+def send_to_server(conn, msg: str, KEY):
     '''
         encrypt and send
     '''
@@ -68,14 +67,16 @@ def send_to_server(conn, msg: str,KEY):
     for key in reversed(KEY):
         msg = encrypt_message(key, msg.strip())
     # send
-    print("+++ ",KEY)
+    print("+++ ", KEY)
     conn.sendall(msg.encode())
+
 
 def send_to_p2p(conn, msg: str):
     '''
         encode and send
     '''
     conn.sendall(msg.strip().encode())
+
 
 def recv_from_server(conn):
     msg = str(conn.recv(1024).decode())
@@ -84,6 +85,7 @@ def recv_from_server(conn):
         msg = decrypt_message(key, msg)
     # ret
     return msg
+
 
 def listen_to_server(conn):  # TODO should handle more tasks
     '''
@@ -94,6 +96,7 @@ def listen_to_server(conn):  # TODO should handle more tasks
     global p2p_conn
     global player
     global game_thread
+
     def print_server():
         print('S: ' + msg)
 
@@ -110,26 +113,23 @@ def listen_to_server(conn):  # TODO should handle more tasks
                 # conncet to p2p socket
                 _, name, ip, port = msg.split()  # opponent info
                 print_server()
-                # response = input('Do you accept? (y): ')
-                response = cmd.ACCEPT  # TODO
-                send_to_server(conn, response)
+                response = input('Do you accept? (y): ')
+                # response = cmd.ACCEPT  # TODO
+                if response == 'y':
+                    # send_to_server(conn, cmd.ACCEPT)
 
-                # connect to client
-                p2p_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                p2p_conn.connect((ip, int(port)))
+                    # connect to client
+                    p2p_conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    p2p_conn.connect((ip, int(port)))
 
-                p2p_thread = threading.Thread(target=listen_to_p2p, daemon=True)
-                p2p_thread.start()
+                    p2p_thread = threading.Thread(target=listen_to_p2p, daemon=True)
+                    p2p_thread.start()
 
-                game_thread = threading.Thread(target=run_game, daemon=True, args=[1,])
-                game_thread.start()
-                player.id = 1
+                    game_thread = threading.Thread(target=run_game, daemon=True, args=[1, ])
+                    game_thread.start()
+                    player.id = 1
 
-                print('Connected to player', name, ip, port)
-
-            elif msg.startswith(cmd.ACCEPT):
-                print('\n\tACCEPT')
-                print_server()
+                    print('Connected to player', name, ip, port)
 
             # cmd d1 d2
             elif msg.startswith(cmd.ROLL):
@@ -138,10 +138,9 @@ def listen_to_server(conn):  # TODO should handle more tasks
                 _, d1, d2 = msg.split()
                 d1 = int(d1)
                 d2 = int(d2)
-                # TODO set dices in game
                 bg.roll_dice(d1, d2)
 
-            #cmd true/False
+            # cmd true/False
             elif msg.startswith(cmd.CHECK):
                 print('\n\tCHECK')
                 print_server()
@@ -152,14 +151,14 @@ def listen_to_server(conn):  # TODO should handle more tasks
                     bg.show_winner(bg.game.window, player.id + 1, bg.game)
                     game_thread.join()
 
-                elif result == (player.id +1) % 2:
+                elif result == (player.id + 1) % 2:
                     print("You Dicked also op won.")
                     thread = None
                     if player.id == 0:
                         bg.show_winner(bg.game.window, 1, bg.game)
                     else:
                         bg.show_winner(bg.game.window, 2, bg.game)
-                    
+
                     game_thread.join()
                     print('----JOINED')
 
@@ -173,7 +172,6 @@ def listen_to_server(conn):  # TODO should handle more tasks
                         p2p_conn.close()
                         p2p_conn = None
                         print('-----p2p closed')
-            #TODO
 
         except Exception as e:
             print("Connection cs closed by server.", e)
@@ -185,6 +183,7 @@ def listen_to_p2p():
         - chat
         - move
     '''
+
     def print_client():
         print('C:', msg)
 
@@ -194,10 +193,15 @@ def listen_to_p2p():
         try:
             msg = str(p2p_conn.recv(1024).decode())
 
+            print_client()
 
             if msg.startswith(cmd.CHAT):
                 print('\n\tCHAT')
                 print('<<<', msg)
+
+            if msg == cmd.REMOVE:
+                print('\n\tREMOVE')
+                bg.game[(player.id + 1) % 2][1] += 1
 
             # cmd id ct cp
             elif msg.startswith(cmd.MOVE):
@@ -219,7 +223,7 @@ def listen_to_p2p():
                 print('\n\tCHECK')
                 p1 = bg.game.stats[0][1]
                 p2 = bg.game.stats[1][1]
-                send_to_server(conn, cmd.CHECK + ' ' + str(p1) + ' ' + str(p2),KEYS)
+                send_to_server(conn, cmd.CHECK + ' ' + str(p1) + ' ' + str(p2), KEYS)
 
             elif msg.startswith(cmd.REVENGE):
 
@@ -228,9 +232,9 @@ def listen_to_p2p():
 
                 if respond:
                     send_to_p2p(p2p_conn, cmd.REMATCH)
-                    threading.Thread(target=run_game, daemon=True,args=(player.id,)).start()
+                    threading.Thread(target=run_game, daemon=True, args=(player.id,)).start()
                 else:
-                    send_to_p2p(p2p_conn,cmd.BREAK)
+                    send_to_p2p(p2p_conn, cmd.BREAK)
                     p2p_conn.close()
                     p2p_conn = None
                     break
@@ -238,7 +242,7 @@ def listen_to_p2p():
             elif msg.startswith(cmd.REMATCH):
                 print('\n\tREMATCH')
                 threading.Thread(target=run_game, daemon=True, args=(player.id,)).start()
-            
+
             elif msg.startswith(cmd.BREAK):
                 print("Break excuted")
                 break
@@ -249,6 +253,7 @@ def listen_to_p2p():
         except Exception as e:
             print("Connection p2p closed.", e)
             break
+
 
 def connect_to_server():
     global conn
@@ -275,19 +280,21 @@ def connect_to_server():
     #     conn.sendall(key)  # Send raw bytes
     #     print(f"Key {i + 1} set.")
     #     time.sleep(3)
-    msg = KEYS[0].decode()+' '+KEYS[1].decode()+' '+KEYS[2].decode()
+    msg = KEYS[0].decode() + ' ' + KEYS[1].decode() + ' ' + KEYS[2].decode()
     conn.sendall(msg.encode())
     # server thread
     threading.Thread(target=listen_to_server, daemon=True, args=[conn]).start()
 
     return conn
 
+
 def run_game(my_id):
     global p2p_conn
     if p2p_conn:
-        bg.main(p2p_conn, my_id, conn,KEYS)
+        bg.main(p2p_conn, my_id, conn, KEYS)
     else:
         print('Error: No p2p connection')
+
 
 def handle_commands(conn):
     global player
@@ -301,9 +308,9 @@ def handle_commands(conn):
         # request <name>
         if command.startswith('request'):
             print('\tREQUEST SEND')
-            _, target_name = command.split()
+            _, target_port = command.split()
             # cmd op_name p_ip p_port
-            send_to_server(conn, f"{cmd.REQUEST} {target_port} {HOST} {player.port}",KEYS)  # TODO id instead of name
+            send_to_server(conn, f"{cmd.REQUEST} {target_port} {HOST} {player.port}", KEYS)  # TODO id instead of name
 
             p2p_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             p2p_socket.bind((HOST, player.port))
@@ -319,7 +326,7 @@ def handle_commands(conn):
                 p2p_thread = threading.Thread(target=listen_to_p2p, daemon=True)
                 p2p_thread.start()
 
-                game_thread = threading.Thread(target=run_game, daemon=True, args=[0,])
+                game_thread = threading.Thread(target=run_game, daemon=True, args=[0, ])
                 game_thread.start()
                 player.id = 0
 
@@ -336,33 +343,30 @@ def handle_commands(conn):
         elif command.startswith('check'):
             p1 = bg.game.stats[0][1]
             p2 = bg.game.stats[1][1]
-            send_to_p2p(p2p_conn,cmd.CHECK)
-            send_to_server(conn, cmd.CHECK + ' ' +  str(p1) + ' ' + str(p2),KEYS)
+            send_to_p2p(p2p_conn, cmd.CHECK)
+            send_to_server(conn, cmd.CHECK + ' ' + str(p1) + ' ' + str(p2), KEYS)
 
         elif command == 'disconnect':
-            send_to_server(conn, cmd.DISCONNECT,KEYS)
+            send_to_server(conn, cmd.DISCONNECT, KEYS)
             break
 
         elif command == 'list':
-            send_to_server(conn, cmd.LIST,KEYS)
+            send_to_server(conn, cmd.LIST, KEYS)
 
         ### p2p commands
         elif command == 'chat':  # p2p
             print('\tCHAT')
             if p2p_conn:
                 txt = input('>>> ')
-                send_to_server(p2p_conn, cmd.CHAT + ' ' + player.name + ': ' + txt)
+                send_to_p2p(p2p_conn, cmd.CHAT + ' ' + player.name + ': ' + txt)
             else:
                 print('Error: no p2p connection.')
             # p2p_conn.sendall(cmd.CHAT.encode())
             pass
 
-        ### offline commands
-        # elif command == 'play':
-        #     run_game(player.id)
-
         else:
             print("Unknown command.")
+
 
 def greet_server(conn):
     global player
@@ -373,11 +377,10 @@ def greet_server(conn):
     player = Player(name=name, port=port)
 
     # name id port
-    send_to_server(conn, player.name + ' ' + HOST + ' ' + str(player.port),KEYS) 
+    send_to_server(conn, player.name + ' ' + HOST + ' ' + str(player.port), KEYS)
 
 
 def client_program():
-
     conn = connect_to_server()
 
     greet_server(conn)
@@ -385,6 +388,7 @@ def client_program():
     handle_commands(conn)
 
     conn.close()
+
 
 if __name__ == '__main__':
     os.system('cls')
