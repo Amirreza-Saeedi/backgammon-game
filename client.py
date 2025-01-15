@@ -55,15 +55,15 @@ def sweet_revenge(text):
 def start_game():
     pass
 
-def send_to_server(conn, msg: str):
+def send_to_server(conn, msg: str,KEY):
     '''
         encrypt and send
     '''
     # encrypt
-    for key in reversed(KEYS):
+    for key in reversed(KEY):
         msg = encrypt_message(key, msg.strip())
     # send
-    print("+++ ",KEYS)
+    print("+++ ",KEY)
     conn.sendall(msg.encode())
 
 def send_to_p2p(conn, msg: str):
@@ -214,7 +214,7 @@ def listen_to_p2p():
                 print('\n\tCHECK')
                 p1 = bg.game.stats[0][1]
                 p2 = bg.game.stats[1][1]
-                send_to_server(conn, cmd.CHECK + ' ' + str(p1) + ' ' + str(p2))
+                send_to_server(conn, cmd.CHECK + ' ' + str(p1) + ' ' + str(p2),KEYS)
 
             elif msg.startswith(cmd.REVENGE):
 
@@ -280,7 +280,7 @@ def connect_to_server():
 def run_game(my_id):
     global p2p_conn
     if p2p_conn:
-        bg.main(p2p_conn, my_id, conn)
+        bg.main(p2p_conn, my_id, conn,KEYS)
     else:
         print('Error: No p2p connection')
 
@@ -298,7 +298,7 @@ def handle_commands(conn):
             print('\tREQUEST SEND')
             _, target_port = command.split()
             # cmd op_name p_ip p_port
-            send_to_server(conn, f"{cmd.REQUEST} {target_port} {HOST} {player.port}")  # TODO id instead of name
+            send_to_server(conn, f"{cmd.REQUEST} {target_port} {HOST} {player.port}",KEYS)  # TODO id instead of name
 
             p2p_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             p2p_socket.bind((HOST, player.port))
@@ -332,14 +332,14 @@ def handle_commands(conn):
             p1 = bg.game.stats[0][1]
             p2 = bg.game.stats[1][1]
             send_to_p2p(p2p_conn,cmd.CHECK)
-            send_to_server(conn, cmd.CHECK + ' ' +  str(p1) + ' ' + str(p2))
+            send_to_server(conn, cmd.CHECK + ' ' +  str(p1) + ' ' + str(p2),KEYS)
 
         elif command == 'disconnect':
-            send_to_server(conn, cmd.DISCONNECT)
+            send_to_server(conn, cmd.DISCONNECT,KEYS)
             break
 
         elif command == 'list':
-            send_to_server(conn, cmd.LIST)
+            send_to_server(conn, cmd.LIST,KEYS)
 
         ### p2p commands
         elif command == 'chat':  # p2p
@@ -364,7 +364,7 @@ def greet_server(conn):
     player = Player(name=name, port=port)
 
     # name id port
-    send_to_server(conn, player.name + ' ' + HOST + ' ' + str(player.port)) 
+    send_to_server(conn, player.name + ' ' + HOST + ' ' + str(player.port),KEYS) 
 
 
 def client_program():

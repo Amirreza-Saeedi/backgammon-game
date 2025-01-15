@@ -26,6 +26,7 @@ main_frame = None
 conn = None
 my_id = None
 server_conn = None
+KEYS = None
 # XXX >
 
 class Game:
@@ -1096,7 +1097,7 @@ def who_won(player):
 def get_roll_dice_from_server():
     global my_id
     if turn == my_id:
-        send_to_server(server_conn, cmd.ROLL)
+        send_to_server(server_conn, cmd.ROLL,KEYS)
     else: # XXX
         messagebox.showerror("Backgammon!!", "Not your turn")
 
@@ -1329,12 +1330,13 @@ def on_close_game():
         sys.exit(0)  # Optional: Exit the entire program
 
 
-def main(p2p_conn1, id , server_conn1):
+def main(p2p_conn1, id , server_conn1,KEYS1):
     # XXX <
-    global conn, my_id, game,server_conn
+    global conn, my_id, game,server_conn,KEYS
     my_id = id
     conn = p2p_conn1
     server_conn = server_conn1
+    KEYS = KEYS1
     # XXX >
     sys.stderr = NoDevSupport()
     window = create_window()
